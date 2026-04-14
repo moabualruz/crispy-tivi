@@ -1,16 +1,16 @@
 import 'package:crispy_tivi/core/theme/crispy_shell_icons.dart';
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
-import 'package:crispy_tivi/features/shell/domain/shell_content.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_models.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/shell_artwork.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/shell_iconography.dart';
+import 'package:crispy_tivi/features/shell/presentation/search/search_presentation_state.dart';
 import 'package:flutter/material.dart';
 
 class SearchView extends StatefulWidget {
-  const SearchView({required this.content, super.key});
+  const SearchView({required this.state, super.key});
 
-  final ShellContentSnapshot content;
+  final SearchPresentationState state;
 
   @override
   State<SearchView> createState() => _SearchViewState();
@@ -21,9 +21,41 @@ class _SearchViewState extends State<SearchView> {
   int _selectedResultIndex = 0;
 
   @override
+  void initState() {
+    super.initState();
+    final int initialGroupIndex = widget.state.groups.indexWhere(
+      (SearchResultGroup group) => group.title == widget.state.activeGroupTitle,
+    );
+    if (initialGroupIndex >= 0) {
+      _selectedGroupIndex = initialGroupIndex;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
-    final List<SearchResultGroup> groups = widget.content.searchGroups;
+    final List<SearchResultGroup> groups = widget.state.groups;
+    if (groups.isEmpty) {
+      return DecoratedBox(
+        decoration: CrispyShellRoles.panelDecoration(),
+        child: Padding(
+          padding: const EdgeInsets.all(CrispyOverhaulTokens.section),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text('Search is empty', style: textTheme.headlineSmall),
+              const SizedBox(height: CrispyOverhaulTokens.small),
+              Text(
+                'Search results appear after at least one provider imports live or media content.',
+                style: textTheme.bodyLarge?.copyWith(
+                  color: CrispyOverhaulTokens.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     final int selectedGroupIndex =
         _selectedGroupIndex < 0 || _selectedGroupIndex >= groups.length
             ? 0
@@ -66,7 +98,7 @@ class _SearchViewState extends State<SearchView> {
                         ),
                       ),
                       const SizedBox(height: CrispyOverhaulTokens.large),
-                      const _SearchFieldPlate(),
+                      _SearchFieldPlate(query: widget.state.query),
                       const SizedBox(height: CrispyOverhaulTokens.small),
                       Text(
                         'Global content scope. Results open into Live TV and Media, not Settings.',
@@ -138,34 +170,45 @@ class _SearchViewState extends State<SearchView> {
 }
 
 class _SearchFieldPlate extends StatelessWidget {
-  const _SearchFieldPlate();
+  const _SearchFieldPlate({required this.query});
+
+  final String query;
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: CrispyShellRoles.searchFieldDecoration(),
-      child: const Padding(
+      child: Padding(
         padding: EdgeInsets.symmetric(
           horizontal: CrispyOverhaulTokens.large,
           vertical: CrispyOverhaulTokens.medium,
         ),
-        child: Row(
+        child: const Row(
           children: <Widget>[
-            ShellIconGraphic(
-              icon: Icons.search,
-              role: ShellIconRole.row,
-            ),
+            ShellIconGraphic(icon: Icons.search, role: ShellIconRole.row),
             SizedBox(width: CrispyOverhaulTokens.small),
+            // The field plate reflects retained runtime query text, not a local placeholder state.
             Expanded(
-              child: Text(
-                'Search live and media titles',
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: CrispyOverhaulTokens.textSecondary),
-              ),
+              child: _SearchFieldPlateLabel(),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SearchFieldPlateLabel extends StatelessWidget {
+  const _SearchFieldPlateLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    final _SearchFieldPlate field =
+        context.findAncestorWidgetOfExactType<_SearchFieldPlate>()!;
+    return Text(
+      field.query.isEmpty ? 'Search live and media titles' : field.query,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(color: CrispyOverhaulTokens.textSecondary),
     );
   }
 }

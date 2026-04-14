@@ -21,8 +21,38 @@ Follow this order without exception:
 4. supporting design docs:
    - `design/docs/design-system.md`
    - `design/docs/app-overhaul-design-system.md`
-5. approved reference images in `design/reference-images/`
-6. active v2 plan docs in `docs/overhaul/plans/`
+5. Phase 18 runtime boundary doc:
+   - `docs/overhaul/plans/v2-phase18-runtime-contract-reset.md`
+6. Phase 19 source/provider registry doc:
+   - `docs/overhaul/plans/v2-phase19-source-provider-registry.md`
+7. Phase 20 live TV / EPG doc:
+   - `docs/overhaul/plans/v2-phase20-live-tv-epg.md`
+8. Phase 21 media / search doc:
+   - `docs/overhaul/plans/v2-phase21-media-search.md`
+9. Phase 22 playback backend doc:
+   - `docs/overhaul/plans/v2-phase22-playback-backend.md`
+10. Phase 23 persistence/personalization doc once active:
+   - `docs/overhaul/plans/v2-phase23-persistence-personalization.md`
+11. Phase 24 production hardening doc once active:
+   - `docs/overhaul/plans/v2-phase24-production-hardening.md`
+12. Phase 25 full app runtime audit doc once active:
+   - `docs/overhaul/plans/v2-phase25-full-app-runtime-audit.md`
+13. Phase 26 demo/test gating and first-run truth doc once active:
+   - `docs/overhaul/plans/v2-phase26-demo-test-gating.md`
+14. Phase 27 provider/controller wiring completion doc once active:
+   - `docs/overhaul/plans/v2-phase27-provider-controller-wiring.md`
+15. Phase 28 screen/widget runtime audit closure doc once active:
+   - `docs/overhaul/plans/v2-phase28-screen-widget-runtime-audit.md`
+16. Phase 29 release-readiness audit doc once active:
+   - `docs/overhaul/plans/v2-phase29-release-readiness.md`
+17. post-Phase-29 remediation track once active:
+   - `docs/overhaul/plans/v2-post-phase29-remediation-plan.md`
+18. Phase 30 provider persistence/import runtime doc once active:
+   - `docs/overhaul/plans/v2-phase30-provider-persistence-import-runtime.md`
+19. Phase 31 provider-driven runtime hydration doc once active:
+   - `docs/overhaul/plans/v2-phase31-provider-driven-runtime-hydration.md`
+17. approved reference images in `design/reference-images/`
+18. active v2 plan docs in `docs/overhaul/plans/`
 
 Non-authority:
 
@@ -49,7 +79,7 @@ This run is **not** a reset run. It is a focused refinement/systemization run.
 
 ### Mission
 
-Execute the next patch phases in one shot.
+Execute the next allowed phase or tightly-coupled phase group in one shot.
 
 Do not start or claim any later phase while an earlier phase is still
 incomplete unless the user explicitly changes the sequence.
@@ -58,6 +88,9 @@ After Phase 6 is fully complete, independent domain lanes may run in parallel
 agents only when ownership is explicit and write scopes do not overlap.
 One orchestrator owns one whole phase. Do not split a phase into partial
 progress slices across multiple orchestrators and call that completion.
+Do not start a later phase just because an earlier runtime-foundation phase was
+marked complete if the active docs still show the next allowed lane is an audit
+or gating phase.
 If sub-agents are used inside a phase, the orchestrator must stay responsible
 for end-to-end closure: re-audit drift/gaps, integrate, rerun verification,
 update docs, and only then declare the phase complete.
@@ -72,6 +105,60 @@ Your job is to:
 4. fix the implementation in a system-first way, not widget-by-widget guesswork
 5. stop only when the targeted patch scope is corrected, verified, and
    documented
+6. if the targeted phase is an audit/gating phase, do not downgrade it into a
+   small fix pass; produce the audit ledger, repair order, and doc updates the
+   phase actually requires
+7. if the next allowed lane is Phase 25, do not spend the pass on isolated bug
+   fixes; produce the populated audit ledger, research notes, and repair order
+   first
+8. if the next allowed lane is Phase 26, make runtime mode selection explicit
+   and testable before deeper provider/runtime wiring; do not leave demo/test
+   gating implied by scattered bootstrap defaults
+9. if the next allowed lane is Phase 27, preserve real provider kinds and move
+   source setup/auth/import/edit/reconnect onto one retained controller path;
+   do not leave wizard progress or configured-provider updates as loose
+   view-model-local maps and booleans
+10. if the next allowed lane is Phase 29, do not treat it as another internal
+    wiring pass; run manual real-source validation, release-readiness checks,
+    and blocker triage from the Phase 25 ledger plus the later runtime phases
+    before discussing product completion
+11. if the active docs show no next allowed lane inside the current track, do
+    not invent a Phase 30. Stop and require a newly documented remediation or
+    follow-on track first.
+12. if a documented post-Phase-29 remediation track exists, use that track as
+    the new phase authority instead of stopping at the earlier full-runtime
+    closure docs.
+13. if the next allowed lane is Phase 30, move source setup/import commits onto
+    retained source-registry persistence first; do not leave configured
+    providers as local-only controller/view-model mutation and do not clear
+    them back to empty on the next real boot.
+14. if the next allowed lane is Phase 31, hydrate retained Home, Live TV,
+    Media, and Search runtime snapshots from configured providers on real
+    boot; do not leave persisted providers wired while those lanes still boot
+    empty, and keep unsupported lanes empty instead of showing unrelated demo
+    shelves.
+15. if the next allowed lane is Phase 32, do not start patching code blindly.
+    First produce the Rust-boundary correction map, anti-drift rule updates,
+    and the swarm execution plan that moves provider/runtime/controller
+    ownership back into Rust. That same phase also owns source/provider
+    migration, runtime hydration migration, and the real in-app proof under
+    the corrected boundary.
+16. if the next allowed lane is Phase 35 or later in the remediation track, do
+    not accept retained runtime in Flutter as valid architecture. Those phases
+    must delete Flutter-owned business/runtime logic, not just add Rust
+    alongside it.
+17. if the remediation track through Phase 35 is already marked complete and
+    the docs show no next allowed lane, do not invent more work inside that
+    track. First document the follow-on blocker-removal track explicitly.
+18. if the next allowed lane is Phase 38, activate the remaining shared
+    `crispy-xmltv` and `crispy-catchup` crates on the active runtime path
+    rather than adding new Flutter-side guide/archive logic.
+19. if the next allowed lane is Phase 39, treat it as release-warning cleanup
+    plus the final readiness rerun; do not hide residual warning debt behind a
+    passing test matrix.
+20. if Phase 39 is complete and the active docs show no next allowed lane
+    inside the cleanup track, do not invent more cleanup work. Stop and require
+    a newly documented track before continuing.
 
 ### Mandatory system rules
 

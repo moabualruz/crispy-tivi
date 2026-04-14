@@ -1,12 +1,86 @@
 import 'package:crispy_tivi/app/app.dart';
+import 'package:crispy_tivi/app/app_runtime_mode.dart';
+import 'package:crispy_tivi/features/shell/data/asset_live_tv_runtime_repository.dart';
+import 'package:crispy_tivi/features/shell/data/asset_media_runtime_repository.dart';
+import 'package:crispy_tivi/features/shell/data/asset_diagnostics_runtime_repository.dart';
+import 'package:crispy_tivi/features/shell/data/asset_personalization_runtime_repository.dart';
+import 'package:crispy_tivi/features/shell/data/asset_shell_bootstrap_repository.dart';
 import 'package:crispy_tivi/features/shell/data/asset_shell_content_repository.dart';
 import 'package:crispy_tivi/features/shell/data/asset_shell_contract_repository.dart';
+import 'package:crispy_tivi/features/shell/data/asset_search_runtime_repository.dart';
+import 'package:crispy_tivi/features/shell/data/asset_source_registry_repository.dart';
+import 'package:crispy_tivi/features/shell/data/persisted_personalization_runtime_repository.dart';
+import 'package:crispy_tivi/features/shell/data/rust_source_registry_repository.dart';
+import 'package:crispy_tivi/features/shell/data/runtime_shell_bootstrap_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('real runtime profile uses runtime bootstrap and unseeded personalization', () {
+    final CrispyTiviApp app = CrispyTiviApp(
+      runtimeProfile: const AppRuntimeProfile.real(),
+    );
+
+    expect(app.runtimeProfile.mode, AppRuntimeMode.real);
+    expect(app.bootstrapRepository, isA<RuntimeShellBootstrapRepository>());
+    expect(
+      app.personalizationRepository,
+      isA<PersistedPersonalizationRuntimeRepository>(),
+    );
+    expect(
+      (app.personalizationRepository
+              as PersistedPersonalizationRuntimeRepository)
+          .seedDefaults,
+      isFalse,
+    );
+  });
+
+  test('demo runtime profile uses rust runtime bootstrap and seeded personalization', () {
+    final CrispyTiviApp app = CrispyTiviApp(
+      runtimeProfile: const AppRuntimeProfile.demo(),
+    );
+
+    expect(app.runtimeProfile.mode, AppRuntimeMode.demo);
+    expect(app.bootstrapRepository, isA<RuntimeShellBootstrapRepository>());
+    expect(app.sourceRegistryRepository, isA<RustSourceRegistryRepository>());
+    expect(
+      (app.sourceRegistryRepository as RustSourceRegistryRepository).demoMode,
+      isTrue,
+    );
+    expect(
+      app.personalizationRepository,
+      isA<PersistedPersonalizationRuntimeRepository>(),
+    );
+    expect(
+      (app.personalizationRepository
+              as PersistedPersonalizationRuntimeRepository)
+          .seedDefaults,
+      isTrue,
+    );
+  });
+
+  test('explicit repository injection overrides runtime profile defaults', () {
+    final RuntimeShellBootstrapRepository bootstrapRepository =
+        RuntimeShellBootstrapRepository();
+    final PersistedPersonalizationRuntimeRepository personalizationRepository =
+        PersistedPersonalizationRuntimeRepository(seedDefaults: false);
+    final CrispyTiviApp app = CrispyTiviApp(
+      runtimeProfile: const AppRuntimeProfile.demo(),
+      bootstrapRepository: bootstrapRepository,
+      personalizationRepository: personalizationRepository,
+    );
+
+    expect(app.runtimeProfile.mode, AppRuntimeMode.demo);
+    expect(identical(app.bootstrapRepository, bootstrapRepository), isTrue);
+    expect(
+      identical(app.personalizationRepository, personalizationRepository),
+      isTrue,
+    );
+    expect(personalizationRepository.seedDefaults, isFalse);
+  });
 
   testWidgets('app exits loading when contract and content assets resolve', (
     WidgetTester tester,
@@ -166,6 +240,329 @@ void main() {
 }
 ''');
       }
+      if (key == AssetSourceRegistryRepository.assetPath) {
+        return const StringCodec().encodeMessage('''
+{
+  "title": "Source registry",
+  "version": "1",
+  "provider_types": [
+    {
+      "provider_key": "xtream",
+      "provider_type": "Xtream",
+      "family": "portal",
+      "connection_mode": "portal_account",
+      "summary": "Provider login with live, VOD, and EPG lanes.",
+      "capabilities": [
+        {"id": "live_tv", "title": "Live TV", "summary": "Live lane", "supported": true},
+        {"id": "guide", "title": "Guide", "summary": "Guide lane", "supported": true}
+      ],
+      "health": {
+        "status": "Needs auth",
+        "summary": "Portal access waiting for credentials.",
+        "last_checked": "Sync blocked",
+        "last_sync": "Sync blocked"
+      },
+      "auth": {
+        "status": "Needs auth",
+        "progress": "0%",
+        "summary": "Credentials required.",
+        "primary_action": "Verify access",
+        "secondary_action": "Back",
+        "field_labels": ["Server URL", "Username", "Password"],
+        "helper_lines": ["Supports account-level refresh."]
+      },
+      "import": {
+        "status": "Blocked",
+        "progress": "0%",
+        "summary": "Import is paused until auth succeeds.",
+        "primary_action": "Continue",
+        "secondary_action": "Review"
+      },
+      "onboarding_hint": "Authenticate first."
+    }
+  ],
+  "onboarding": {
+    "selected_provider_type": "Xtream",
+    "active_step": "Credentials",
+    "step_order": ["Source Type", "Connection", "Credentials", "Import", "Finish"],
+    "steps": [
+      {
+        "step": "Credentials",
+        "title": "Verify access",
+        "summary": "Credentials gate import.",
+        "primary_action": "Continue",
+        "secondary_action": "Back",
+        "field_labels": ["Server URL", "Username", "Password"],
+        "helper_lines": ["Validation should happen before import."]
+      }
+    ],
+    "provider_copy": []
+  },
+  "registry_notes": []
+}
+''');
+      }
+      if (key == AssetLiveTvRuntimeRepository.assetPath) {
+        return const StringCodec().encodeMessage('''
+{
+  "title": "CrispyTivi Live TV Runtime",
+  "version": "1",
+  "provider": {
+    "provider_key": "home_fiber_iptv",
+    "provider_type": "M3U + XMLTV",
+    "family": "playlist",
+    "connection_mode": "remote_url",
+    "source_name": "Home Fiber IPTV",
+    "status": "Healthy",
+    "summary": "Live channels and guide data are synchronized for browse and playback.",
+    "last_sync": "2 minutes ago",
+    "guide_health": "EPG verified"
+  },
+  "browsing": {
+    "active_panel": "Channels",
+    "selected_group": "All",
+    "selected_channel": "101 Crispy One",
+    "group_order": ["All"],
+    "groups": [
+      {
+        "id": "all",
+        "title": "All",
+        "summary": "Every available live channel",
+        "channel_count": 1,
+        "selected": true
+      }
+    ]
+  },
+  "channels": [
+    {
+      "number": "101",
+      "name": "Crispy One",
+      "group": "News",
+      "state": "selected",
+      "live_edge": true,
+      "catch_up": true,
+      "archive": true,
+      "current": {
+        "title": "Midnight Bulletin",
+        "summary": "Top stories, business close, and late headlines.",
+        "start": "21:00",
+        "end": "22:00",
+        "progress_percent": 55
+      },
+      "next": {
+        "title": "Market Close",
+        "summary": "Wrap-up analysis and overnight context.",
+        "start": "22:00",
+        "end": "22:30",
+        "progress_percent": 0
+      }
+    }
+  ],
+  "guide": {
+    "title": "Live TV Guide",
+    "window_start": "21:00",
+    "window_end": "23:00",
+    "time_slots": ["Now"],
+    "rows": [
+      {
+        "channel_number": "101",
+        "channel_name": "Crispy One",
+        "slots": [
+          {
+            "start": "21:00",
+            "end": "22:00",
+            "title": "Midnight Bulletin",
+            "state": "current"
+          }
+        ]
+      }
+    ]
+  },
+  "selection": {
+    "channel_number": "101",
+    "channel_name": "Crispy One",
+    "status": "Live",
+    "live_edge": true,
+    "catch_up": true,
+    "archive": true,
+    "now": {
+      "title": "Midnight Bulletin",
+      "summary": "Top national stories.",
+      "start": "21:00",
+      "end": "22:00",
+      "progress_percent": 55
+    },
+    "next": {
+      "title": "Market Close",
+      "summary": "Closing bell recap.",
+      "start": "22:00",
+      "end": "22:30",
+      "progress_percent": 0
+    },
+    "primary_action": "Watch live",
+    "secondary_action": "Start over",
+    "badges": ["Live", "News"],
+    "detail_lines": ["Selected detail stays in the right lane."]
+  },
+  "notes": ["Rust-owned runtime snapshot."]
+}
+''');
+      }
+      if (key == AssetMediaRuntimeRepository.assetPath) {
+        return const StringCodec().encodeMessage('''
+{
+  "title": "CrispyTivi Media Runtime",
+  "version": "1",
+  "active_panel": "Movies",
+  "active_scope": "Featured",
+  "movie_hero": {
+    "kicker": "Featured film",
+    "title": "The Last Harbor",
+    "summary": "A cinematic detail state with clear action hierarchy, restrained metadata, and content-first framing.",
+    "primary_action": "Play trailer",
+    "secondary_action": "Add to watchlist",
+    "artwork": {"kind": "asset", "value": "assets/mocks/media-movie-hero-shell.jpg"}
+  },
+  "series_hero": {
+    "kicker": "Series spotlight",
+    "title": "Shadow Signals",
+    "summary": "Season-driven browsing stays inside the media domain with episode context and tight focus separation.",
+    "primary_action": "Resume S1:E6",
+    "secondary_action": "Browse episodes",
+    "artwork": {"kind": "asset", "value": "assets/mocks/media-series-hero-shell.jpg"}
+  },
+  "movie_collections": [
+    {
+      "title": "Featured Films",
+      "summary": "Featured runtime films.",
+      "items": [
+        {"title": "The Last Harbor", "caption": "Thriller", "rank": 1, "artwork": {"kind": "asset", "value": "assets/mocks/poster-shell-1.jpg"}},
+        {"title": "Atlas Run", "caption": "Action", "rank": 2, "artwork": {"kind": "asset", "value": "assets/mocks/poster-shell-3.jpg"}}
+      ]
+    },
+    {
+      "title": "Continue Watching Films",
+      "summary": "Resume-ready film items.",
+      "items": [
+        {"title": "Neon District", "caption": "42 min left", "artwork": {"kind": "asset", "value": "assets/mocks/poster-shell-1.jpg"}}
+      ]
+    }
+  ],
+  "series_collections": [
+    {
+      "title": "Featured Series",
+      "summary": "Featured runtime series.",
+      "items": [
+        {"title": "Shadow Signals", "caption": "New episode", "rank": 1, "artwork": {"kind": "asset", "value": "assets/mocks/poster-shell-5.jpg"}}
+      ]
+    }
+  ],
+  "series_detail": {
+    "summary_title": "Season and episode playback",
+    "summary_body": "Season choice stays above episode choice and keeps playback inside the player.",
+    "handoff_label": "Play episode",
+    "seasons": [
+      {
+        "label": "Season 1",
+        "summary": "Episode-first season.",
+        "episodes": [
+          {
+            "code": "S1:E1",
+            "title": "Cold Open",
+            "summary": "Series premiere and setup.",
+            "duration_label": "45 min",
+            "handoff_label": "Play episode"
+          }
+        ]
+      }
+    ]
+  },
+  "notes": ["Asset-backed media runtime snapshot."]
+}
+''');
+      }
+      if (key == AssetSearchRuntimeRepository.assetPath) {
+        return const StringCodec().encodeMessage('''
+{
+  "title": "CrispyTivi Search Runtime",
+  "version": "1",
+  "query": "",
+  "active_group_title": "Live TV",
+  "groups": [
+    {
+      "title": "Live TV",
+      "summary": "Live channels and guide-linked results.",
+      "selected": true,
+      "results": [
+        {
+          "title": "Arena Live",
+          "caption": "Channel 118",
+          "source_label": "Live TV",
+          "handoff_label": "Open channel",
+          "artwork": {"kind": "asset", "value": "assets/mocks/poster-shell-5.jpg"}
+        }
+      ]
+    },
+    {
+      "title": "Movies",
+      "summary": "Film results and featured rails.",
+      "selected": false,
+      "results": [
+        {
+          "title": "The Last Harbor",
+          "caption": "Thriller",
+          "source_label": "Movies",
+          "handoff_label": "Open movie",
+          "artwork": {"kind": "asset", "value": "assets/mocks/poster-shell-1.jpg"}
+        }
+      ]
+    },
+    {
+      "title": "Series",
+      "summary": "Series results and episode-ready handoff.",
+      "selected": false,
+      "results": [
+        {
+          "title": "Shadow Signals",
+          "caption": "Sci-fi drama",
+          "source_label": "Series",
+          "handoff_label": "Open series",
+          "artwork": {"kind": "asset", "value": "assets/mocks/poster-shell-5.jpg"}
+        }
+      ]
+    }
+  ],
+  "notes": ["Asset-backed search runtime snapshot."]
+}
+''');
+      }
+      if (key == AssetDiagnosticsRuntimeRepository.assetPath) {
+        return const StringCodec().encodeMessage('''
+{
+  "title": "CrispyTivi Diagnostics Runtime",
+  "version": "1",
+  "validation_summary": "Runtime validation and media diagnostics are available for source QA and release support.",
+  "ffprobe_available": false,
+  "ffmpeg_available": false,
+  "reports": [],
+  "notes": ["Asset-backed diagnostics snapshot."]
+}
+''');
+      }
+      if (key == 'assets/contracts/asset_personalization_runtime.json') {
+        return const StringCodec().encodeMessage('''
+{
+  "title": "CrispyTivi Personalization Runtime",
+  "version": "1",
+  "startup_route": "Home",
+  "continue_watching": [],
+  "recently_viewed": [],
+  "favorite_media_keys": [],
+  "favorite_channel_numbers": [],
+  "notes": ["Asset-backed personalization defaults."]
+}
+''');
+      }
       return null;
     });
     addTearDown(
@@ -175,11 +572,19 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(const CrispyTiviApp());
-    await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      CrispyTiviApp(
+        bootstrapRepository: AssetShellBootstrapRepository(
+          personalizationRuntimeRepository:
+              AssetPersonalizationRuntimeRepository(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Home'), findsOneWidget);
-    expect(find.text('City Lights at Midnight'), findsWidgets);
+    expect(find.text('The Last Harbor'), findsWidgets);
     expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(find.textContaining('failed to load'), findsNothing);
   });

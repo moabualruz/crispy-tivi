@@ -1,0 +1,46 @@
+{
+  "title": "CrispyTivi Diagnostics Runtime",
+  "version": "1",
+  "validation_summary": "Runtime validation and media diagnostics are available for source QA and release support.",
+  "ffprobe_available": false,
+  "ffmpeg_available": false,
+  "reports": [
+    {
+      "source_name": "Home Fiber IPTV",
+      "stream_title": "Crispy One",
+      "category": "alive",
+      "status_code": 200,
+      "response_time_ms": 182,
+      "url_hash": "https://stream.crispy-tivi.test/live/101.m3u8",
+      "resume_hash": "412b5fff6aeb3ec2",
+      "resolution_label": "1080p",
+      "probe_backend": "metadata-only",
+      "mismatch_warnings": [],
+      "detail_lines": [
+        "Normalized source validation path",
+        "HLS variant metadata retained for support tooling"
+      ]
+    },
+    {
+      "source_name": "Arena Live",
+      "stream_title": "Championship Replay",
+      "category": "alive",
+      "status_code": 200,
+      "response_time_ms": 244,
+      "url_hash": "https://stream.crispy-tivi.test/live/118.m3u8",
+      "resume_hash": "2a353eef9692b236",
+      "resolution_label": "1080p",
+      "probe_backend": "metadata-only",
+      "mismatch_warnings": [
+        "Expected 4K, got FHD"
+      ],
+      "detail_lines": [
+        "Quality label mismatch retained for diagnostics",
+        "Use media probe tooling when native probe binaries are available"
+      ]
+    }
+  ],
+  "notes": [
+    "Asset-backed diagnostics snapshot mirrors the retained Rust diagnostics contract."
+  ]
+}

@@ -140,8 +140,9 @@ void main() {
 }
 ''';
 
-    final ShellContentSnapshot content =
-        ShellContentSnapshot.fromJsonString(source);
+    final ShellContentSnapshot content = ShellContentSnapshot.fromJsonString(
+      source,
+    );
 
     expect(content.homeHero.title, 'City Lights at Midnight');
     expect(content.movieHero.title, 'The Last Harbor');
@@ -301,7 +302,8 @@ void main() {
       ),
     );
 
-    const AssetShellContentRepository repository = AssetShellContentRepository();
+    const AssetShellContentRepository repository =
+        AssetShellContentRepository();
     final ShellContentSnapshot content = await repository.load();
 
     expect(content.homeHero.artwork, isNotNull);

@@ -1,331 +1,365 @@
 import 'package:crispy_tivi/features/shell/domain/shell_contract.dart';
+import 'package:crispy_tivi/features/shell/domain/live_tv_runtime.dart';
+import 'package:crispy_tivi/features/shell/domain/media_runtime.dart';
+import 'package:crispy_tivi/features/shell/domain/diagnostics_runtime.dart';
+import 'package:crispy_tivi/features/shell/domain/personalization_runtime.dart';
+import 'package:crispy_tivi/features/shell/domain/search_runtime.dart';
+import 'package:crispy_tivi/features/shell/domain/shell_models.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_navigation.dart';
 import 'package:crispy_tivi/features/shell/domain/player_session.dart';
+import 'package:crispy_tivi/features/shell/presentation/view_state/source_provider_registry.dart';
+import 'package:crispy_tivi/features/shell/domain/source_registry_snapshot.dart';
+import 'package:crispy_tivi/features/shell/data/asset_source_registry_repository.dart';
+import 'package:crispy_tivi/features/shell/data/rust_shell_runtime_bridge.dart';
+import 'package:crispy_tivi/features/shell/data/source_registry_repository.dart';
+import 'package:crispy_tivi/features/shell/data/personalization_runtime_repository.dart';
+import 'package:crispy_tivi/features/shell/presentation/media/media_presentation_adapter.dart';
+import 'package:crispy_tivi/features/shell/presentation/media/media_presentation_state.dart';
+import 'package:crispy_tivi/features/shell/presentation/search/search_presentation_adapter.dart';
+import 'package:crispy_tivi/features/shell/presentation/search/search_presentation_state.dart';
+import 'package:crispy_tivi/features/shell/presentation/view_model/shell_navigation_coordinator.dart';
+import 'package:crispy_tivi/features/shell/presentation/view_model/shell_live_tv_selection_coordinator.dart';
+import 'package:crispy_tivi/features/shell/presentation/view_model/shell_media_selection_coordinator.dart';
+import 'package:crispy_tivi/features/shell/presentation/view_model/shell_selection_coordinator.dart';
+import 'package:crispy_tivi/features/shell/presentation/view_model/shell_command_coordinator.dart';
+import 'package:crispy_tivi/features/shell/presentation/view_model/shell_runtime_presentation_coordinator.dart';
+import 'package:crispy_tivi/features/shell/presentation/view_model/shell_player_runtime_coordinator.dart';
+import 'package:crispy_tivi/features/shell/presentation/view_model/shell_personalization_coordinator.dart';
+import 'package:crispy_tivi/features/shell/presentation/view_model/player_playback_controller.dart';
+import 'package:crispy_tivi/features/shell/presentation/view_model/shell_source_setup_coordinator.dart';
+import 'package:crispy_tivi/features/shell/presentation/view_model/shell_source_workflow_coordinator.dart';
 import 'package:flutter/foundation.dart';
 
+export 'package:crispy_tivi/features/shell/presentation/view_state/source_provider_registry.dart';
+
+part 'shell_view_model_projection.dart';
+
 class ShellViewModel extends ChangeNotifier {
-  ShellViewModel({required ShellContractSupport contract})
-    : _contract = contract,
-      _route = contract.startupRoute,
-      _liveTvPanel = contract.liveTvPanels.first,
-      _liveTvGroup = contract.liveTvGroups.first,
-      _mediaPanel = contract.mediaPanels.first,
-      _mediaScope = contract.mediaScopes.first,
-      _seriesSeasonIndex = 0,
-      _seriesEpisodeIndex = 0,
-      _seriesLaunchedEpisodeIndex = null,
-      _settingsPanel = contract.settingsPanels.first,
-      _sourceWizardStep = contract.sourceWizardSteps.first;
+  ShellViewModel({
+    required ShellContractSupport contract,
+    SourceRegistrySnapshot? sourceRegistry,
+    LiveTvRuntimeSnapshot? liveTvRuntime,
+    MediaRuntimeSnapshot? mediaRuntime,
+    SearchRuntimeSnapshot? searchRuntime,
+    DiagnosticsRuntimeSnapshot? diagnosticsRuntime,
+    PersonalizationRuntimeSnapshot? personalizationRuntime,
+    SourceRegistryRepository sourceRegistryRepository =
+        const AssetSourceRegistryRepository(),
+    ShellRuntimeBridge? shellRuntimeBridge,
+    ShellSourceSetupCoordinator? sourceSetupCoordinator,
+    ShellPersonalizationCoordinator? personalizationCoordinator,
+    PersonalizationRuntimeRepository personalizationRepository =
+        const NoopPersonalizationRuntimeRepository(),
+  }) : _contract = contract,
+       _personalizationCoordinator =
+           personalizationCoordinator ??
+           ShellPersonalizationCoordinator(
+             personalizationRepository: personalizationRepository,
+           ),
+       _liveTvCoordinator = ShellLiveTvSelectionCoordinator(
+         liveTvPanel: contract.liveTvPanels.first,
+         liveTvGroupId:
+             (liveTvRuntime ?? const LiveTvRuntimeSnapshot.empty())
+                 .selectedGroupId,
+       ),
+       _mediaCoordinator = ShellMediaSelectionCoordinator(
+         mediaPanel: contract.mediaPanels.first,
+         mediaScope: contract.mediaScopes.first,
+       ),
+       _runtimeCoordinator = ShellRuntimePresentationCoordinator(
+         liveTvRuntime: liveTvRuntime ?? const LiveTvRuntimeSnapshot.empty(),
+         mediaRuntime: mediaRuntime ?? const MediaRuntimeSnapshot.empty(),
+         searchRuntime: searchRuntime ?? const SearchRuntimeSnapshot.empty(),
+         diagnosticsRuntime:
+             diagnosticsRuntime ?? const DiagnosticsRuntimeSnapshot.empty(),
+         personalizationRuntime:
+             personalizationRuntime ??
+             const PersonalizationRuntimeSnapshot.empty(),
+       ) {
+    _navigationCoordinator = ShellNavigationCoordinator(
+      contract: contract,
+      sourceRegistry: sourceRegistry ?? const SourceRegistrySnapshot.empty(),
+      personalizationRuntime: _runtimeCoordinator.personalizationRuntime,
+      personalizationCoordinator: _personalizationCoordinator,
+      isDisposed: () => _disposed,
+      setPersonalizationRuntime: _runtimeCoordinator.setPersonalizationRuntime,
+      notifyChanged: notifyListeners,
+    );
+    _sourceWorkflowCoordinator = ShellSourceWorkflowCoordinator(
+      sourceRegistry: sourceRegistry ?? const SourceRegistrySnapshot.empty(),
+      sourceRegistryRepository: sourceRegistryRepository,
+      sourceSetupCoordinator: sourceSetupCoordinator,
+      shellRuntimeBridge:
+          shellRuntimeBridge ?? (!kIsWeb ? createShellRuntimeBridge() : null),
+      isDisposed: () => _disposed,
+      applyRuntimeBundle: (bundle) {
+        _sourceWorkflowCoordinator.applySourceRegistrySnapshot(
+          bundle.sourceRegistry,
+        );
+        _runtimeCoordinator.applyRuntimeBundle(bundle);
+        _navigationCoordinator.setPersonalizationRuntime(
+          bundle.personalizationRuntime,
+        );
+      },
+      notifyChanged: notifyListeners,
+    );
+    _playerCoordinator = ShellPlayerRuntimeCoordinator(
+      personalizationCoordinator: _personalizationCoordinator,
+      getPersonalizationRuntime: () => _runtimeCoordinator.personalizationRuntime,
+      setPersonalizationRuntime: _runtimeCoordinator.setPersonalizationRuntime,
+      notifyChanged: notifyListeners,
+    );
+    _commandCoordinator = ShellCommandCoordinator(
+      navigationCoordinator: _navigationCoordinator,
+      sourceWorkflowCoordinator: _sourceWorkflowCoordinator,
+      playerCoordinator: _playerCoordinator,
+    );
+    _selectionCoordinator = ShellSelectionCoordinator(
+      liveTvCoordinator: _liveTvCoordinator,
+      mediaCoordinator: _mediaCoordinator,
+      notifyChanged: notifyListeners,
+    );
+  }
 
   final ShellContractSupport _contract;
-  ShellRoute _route;
-  LiveTvPanel _liveTvPanel;
-  LiveTvGroup _liveTvGroup;
-  int _liveTvFocusedChannelIndex = 0;
-  int _liveTvPlayingChannelIndex = 0;
-  MediaPanel _mediaPanel;
-  MediaScope _mediaScope;
-  int _seriesSeasonIndex;
-  int _seriesEpisodeIndex;
-  int? _seriesLaunchedEpisodeIndex;
-  SettingsPanel _settingsPanel;
-  int _selectedSourceIndex = 0;
-  bool _sourceWizardActive = false;
-  SourceWizardStep _sourceWizardStep;
-  String _settingsSearchQuery = '';
-  String? _highlightedSettingsLeaf;
-  PlayerSession? _playerSession;
-  PlayerChromeState _playerChromeState = PlayerChromeState.transport;
-  PlayerChooserKind? _activePlayerChooser;
+  final ShellPersonalizationCoordinator _personalizationCoordinator;
+  late final ShellNavigationCoordinator _navigationCoordinator;
+  late final ShellSourceWorkflowCoordinator _sourceWorkflowCoordinator;
+  final ShellLiveTvSelectionCoordinator _liveTvCoordinator;
+  final ShellMediaSelectionCoordinator _mediaCoordinator;
+  late final ShellSelectionCoordinator _selectionCoordinator;
+  final ShellRuntimePresentationCoordinator _runtimeCoordinator;
+  late final ShellPlayerRuntimeCoordinator _playerCoordinator;
+  late final ShellCommandCoordinator _commandCoordinator;
+  bool _disposed = false;
 
-  ShellRoute get route => _route;
+  static String sourcesLeafLabel(int index) =>
+      ShellNavigationCoordinator.sourcesLeafLabel(index);
+
+  ShellRoute get route => _navigationCoordinator.route;
   ShellContractSupport get contract => _contract;
-  LiveTvPanel get liveTvPanel => _liveTvPanel;
-  LiveTvGroup get liveTvGroup => _liveTvGroup;
-  int get liveTvFocusedChannelIndex => _liveTvFocusedChannelIndex;
-  int get liveTvPlayingChannelIndex => _liveTvPlayingChannelIndex;
-  MediaPanel get mediaPanel => _mediaPanel;
-  MediaScope get mediaScope => _mediaScope;
-  int get seriesSeasonIndex => _seriesSeasonIndex;
-  int get seriesEpisodeIndex => _seriesEpisodeIndex;
-  int? get seriesLaunchedEpisodeIndex => _seriesLaunchedEpisodeIndex;
-  SettingsPanel get settingsPanel => _settingsPanel;
-  int get selectedSourceIndex => _selectedSourceIndex;
-  bool get sourceWizardActive => _sourceWizardActive;
-  SourceWizardStep get sourceWizardStep => _sourceWizardStep;
-  String get settingsSearchQuery => _settingsSearchQuery;
-  String? get highlightedSettingsLeaf => _highlightedSettingsLeaf;
-  PlayerSession? get playerSession => _playerSession;
-  PlayerChromeState get playerChromeState => _playerChromeState;
-  PlayerChooserKind? get activePlayerChooser => _activePlayerChooser;
+  LiveTvRuntimeSnapshot get liveTvRuntime => _runtimeCoordinator.liveTvRuntime;
+  MediaRuntimeSnapshot get mediaRuntime => _runtimeCoordinator.mediaRuntime;
+  SearchRuntimeSnapshot get searchRuntime => _runtimeCoordinator.searchRuntime;
+  DiagnosticsRuntimeSnapshot get diagnosticsRuntime =>
+      _runtimeCoordinator.diagnosticsRuntime;
+  PersonalizationRuntimeSnapshot get personalizationRuntime =>
+      _runtimeCoordinator.personalizationRuntime;
+  LiveTvPanel get liveTvPanel => _liveTvCoordinator.liveTvPanel;
+  bool get liveTvChannelsActive => _liveTvCoordinator.liveTvChannelsActive;
+  bool get liveTvGuideActive => _liveTvCoordinator.liveTvGuideActive;
+  String get liveTvGroupId => _liveTvCoordinator.liveTvGroupId;
+  int get liveTvFocusedChannelIndex =>
+      _liveTvCoordinator.liveTvFocusedChannelIndex;
+  int get liveTvPlayingChannelIndex =>
+      _liveTvCoordinator.liveTvPlayingChannelIndex;
+  MediaPanel get mediaPanel => _mediaCoordinator.mediaPanel;
+  MediaScope get mediaScope => _mediaCoordinator.mediaScope;
+  int get seriesSeasonIndex => _mediaCoordinator.seriesSeasonIndex;
+  int get seriesEpisodeIndex => _mediaCoordinator.seriesEpisodeIndex;
+  int? get seriesLaunchedEpisodeIndex =>
+      _mediaCoordinator.seriesLaunchedEpisodeIndex;
+  SettingsPanel get settingsPanel => _navigationCoordinator.settingsPanel;
+  SourceProviderRegistry get sourceRegistry =>
+      SourceProviderRegistry.fromSnapshot(
+        _sourceWorkflowCoordinator.sourceRegistrySnapshot,
+      );
+  MediaPresentationState get mediaPresentation {
+    if (_runtimeCoordinator.mediaRuntime.movieCollections.isEmpty &&
+        _runtimeCoordinator.mediaRuntime.seriesCollections.isEmpty &&
+        _runtimeCoordinator.mediaRuntime.seriesDetail.seasons.isEmpty) {
+      return const MediaPresentationState.empty();
+    }
+    return MediaPresentationAdapter.build(
+      runtime: _runtimeCoordinator.mediaRuntime,
+      personalization: _runtimeCoordinator.personalizationRuntime,
+      availableScopes: _contract.mediaScopes,
+      panel: _mediaCoordinator.mediaPanel,
+      scope: _mediaCoordinator.mediaScope,
+      seriesSeasonIndex: _mediaCoordinator.seriesSeasonIndex,
+      seriesEpisodeIndex: _mediaCoordinator.seriesEpisodeIndex,
+      launchedSeriesEpisodeIndex:
+          _mediaCoordinator.seriesLaunchedEpisodeIndex,
+    );
+  }
+
+  SearchPresentationState get searchPresentation {
+    if (_runtimeCoordinator.searchRuntime.groups.isEmpty) {
+      return const SearchPresentationState.empty();
+    }
+    return SearchPresentationAdapter.build(runtime: _runtimeCoordinator.searchRuntime);
+  }
+
+  SourceProviderKind get selectedProviderType => sourceProviderKindFromRuntime(
+    _sourceWorkflowCoordinator.sourceRegistrySnapshot.selectedProviderKind,
+  );
+  int get selectedSourceIndex => _sourceWorkflowCoordinator.selectedSourceIndex;
+  bool get sourceWizardActive => _sourceWorkflowCoordinator.sourceWizardActive;
+  SourceWizardStep get sourceWizardStep => _sourceWorkflowCoordinator.sourceWizardStep;
+  Map<String, String> get sourceWizardFieldValues =>
+      _sourceWorkflowCoordinator.sourceWizardFieldValues;
+  String get settingsSearchQuery => _navigationCoordinator.settingsSearchQuery;
+  String? get highlightedSettingsLeaf =>
+      _navigationCoordinator.highlightedSettingsLeaf;
+  PlayerSession? get playerSession => _playerCoordinator.playerSession;
+  PlayerPlaybackController get playerPlaybackController =>
+      _playerCoordinator.playerPlaybackController;
+  PlayerChromeState get playerChromeState => _playerCoordinator.playerChromeState;
+  PlayerChooserKind? get activePlayerChooser =>
+      _playerCoordinator.activePlayerChooser;
+  List<ShelfItem> get homeContinueWatchingItems {
+    return buildContinueWatchingItems(_runtimeCoordinator.personalizationRuntime);
+  }
+
+  HeroFeature? get homeHeroFeature {
+    return heroFeatureFromRuntime(_runtimeCoordinator.mediaRuntime);
+  }
+
+  List<ShelfItem> get homeLiveNowItems {
+    return buildLiveNowItems(_runtimeCoordinator.liveTvRuntime);
+  }
+
+  List<SettingsItem> get generalSettingsItems {
+    return buildGeneralSettingsItems(
+      personalizationRuntime: _runtimeCoordinator.personalizationRuntime,
+      sourceRegistry: sourceRegistry,
+    );
+  }
+
+  List<SettingsItem> get playbackSettingsItems {
+    return buildPlaybackSettingsItems(_runtimeCoordinator.personalizationRuntime);
+  }
+
+  List<SettingsItem> get appearanceSettingsItems {
+    return buildAppearanceSettingsItems();
+  }
+
+  List<SettingsItem> get systemSettingsItems {
+    return buildSystemSettingsItems(_runtimeCoordinator.diagnosticsRuntime);
+  }
 
   void selectRoute(ShellRoute route) {
-    if (_route == route) {
-      return;
-    }
-    _route = route;
-    if (route != ShellRoute.settings) {
-      _sourceWizardActive = false;
-      _settingsSearchQuery = '';
-      _highlightedSettingsLeaf = null;
-    }
-    notifyListeners();
+    _commandCoordinator.selectRoute(route);
   }
 
   void selectLiveTvPanel(LiveTvPanel panel) {
-    if (_liveTvPanel == panel) {
-      return;
-    }
-    _liveTvPanel = panel;
-    notifyListeners();
+    _selectionCoordinator.selectLiveTvPanel(panel);
   }
 
-  void selectLiveTvGroup(LiveTvGroup group) {
-    if (_liveTvGroup == group) {
-      return;
-    }
-    _liveTvGroup = group;
-    _liveTvFocusedChannelIndex = 0;
-    _liveTvPlayingChannelIndex = 0;
-    notifyListeners();
+  void selectLiveTvGroup(String groupId) {
+    _selectionCoordinator.selectLiveTvGroup(groupId);
   }
 
   void selectLiveTvChannelIndex(int index) {
-    if (_liveTvFocusedChannelIndex == index) {
-      return;
-    }
-    _liveTvFocusedChannelIndex = index;
-    notifyListeners();
+    _selectionCoordinator.selectLiveTvChannelIndex(index);
   }
 
   void activateLiveTvFocusedChannel() {
-    if (_liveTvPlayingChannelIndex == _liveTvFocusedChannelIndex) {
-      return;
-    }
-    _liveTvPlayingChannelIndex = _liveTvFocusedChannelIndex;
-    notifyListeners();
+    _selectionCoordinator.activateLiveTvFocusedChannel();
   }
 
   void selectMediaPanel(MediaPanel panel) {
-    if (_mediaPanel == panel) {
-      return;
-    }
-    _mediaPanel = panel;
-    _seriesSeasonIndex = 0;
-    _seriesEpisodeIndex = 0;
-    _seriesLaunchedEpisodeIndex = null;
-    notifyListeners();
+    _selectionCoordinator.selectMediaPanel(panel);
   }
 
   void selectMediaScope(MediaScope scope) {
-    if (_mediaScope == scope) {
-      return;
-    }
-    _mediaScope = scope;
-    notifyListeners();
+    _selectionCoordinator.selectMediaScope(scope);
   }
 
   void selectSeriesSeasonIndex(int index) {
-    if (_seriesSeasonIndex == index) {
-      return;
-    }
-    _seriesSeasonIndex = index;
-    _seriesEpisodeIndex = 0;
-    _seriesLaunchedEpisodeIndex = null;
-    notifyListeners();
+    _selectionCoordinator.selectSeriesSeasonIndex(index);
   }
 
   void selectSeriesEpisodeIndex(int index) {
-    if (_seriesEpisodeIndex == index) {
-      return;
-    }
-    _seriesEpisodeIndex = index;
-    notifyListeners();
+    _selectionCoordinator.selectSeriesEpisodeIndex(index);
   }
 
   void launchSeriesEpisode() {
-    if (_seriesLaunchedEpisodeIndex == _seriesEpisodeIndex) {
-      return;
-    }
-    _seriesLaunchedEpisodeIndex = _seriesEpisodeIndex;
-    notifyListeners();
+    _selectionCoordinator.launchSeriesEpisode();
   }
 
   void launchPlayer(PlayerSession session) {
-    _playerSession = session;
-    _playerChromeState = PlayerChromeState.transport;
-    _activePlayerChooser = null;
-    notifyListeners();
+    _commandCoordinator.launchPlayer(session);
   }
 
   void openPlayerInfo() {
-    if (_playerSession == null ||
-        _playerChromeState == PlayerChromeState.expandedInfo) {
-      return;
-    }
-    _playerChromeState = PlayerChromeState.expandedInfo;
-    _activePlayerChooser = null;
-    notifyListeners();
+    _commandCoordinator.openPlayerInfo();
   }
 
   void openPlayerChooser(PlayerChooserKind kind) {
-    if (_playerSession == null) {
-      return;
-    }
-    if (_activePlayerChooser == kind) {
-      return;
-    }
-    _activePlayerChooser = kind;
-    notifyListeners();
+    _commandCoordinator.openPlayerChooser(kind);
   }
 
   void closePlayerChooser() {
-    if (_activePlayerChooser == null) {
-      return;
-    }
-    _activePlayerChooser = null;
-    notifyListeners();
+    _commandCoordinator.closePlayerChooser();
   }
 
   void unwindPlayer() {
-    if (_playerSession == null) {
-      return;
-    }
-    if (_activePlayerChooser != null) {
-      _activePlayerChooser = null;
-      notifyListeners();
-      return;
-    }
-    if (_playerChromeState == PlayerChromeState.expandedInfo) {
-      _playerChromeState = PlayerChromeState.transport;
-      notifyListeners();
-      return;
-    }
-    _playerSession = null;
-    notifyListeners();
+    _commandCoordinator.unwindPlayer();
   }
 
   void selectPlayerQueueIndex(int index) {
-    final PlayerSession? session = _playerSession;
-    if (session == null || index == session.activeIndex) {
-      return;
-    }
-    _playerSession = session.selectQueueIndex(index);
-    notifyListeners();
+    _commandCoordinator.selectPlayerQueueIndex(index);
   }
 
   void selectPlayerChooserOption(PlayerChooserKind kind, int optionIndex) {
-    final PlayerSession? session = _playerSession;
-    if (session == null) {
-      return;
-    }
-    _playerSession = session.selectChooserOption(kind, optionIndex);
-    notifyListeners();
+    _commandCoordinator.selectPlayerChooserOption(kind, optionIndex);
+  }
+
+  void toggleMediaWatchlist(String contentKey) {
+    _commandCoordinator.toggleMediaWatchlist(contentKey);
   }
 
   void selectSettingsPanel(SettingsPanel panel) {
-    if (_settingsPanel == panel) {
-      return;
-    }
-    _settingsPanel = panel;
-    if (panel != SettingsPanel.sources) {
-      _sourceWizardActive = false;
-    }
-    _settingsSearchQuery = '';
-    _highlightedSettingsLeaf = null;
-    notifyListeners();
+    _commandCoordinator.selectSettingsPanel(panel);
   }
 
   void selectSourceIndex(int index) {
-    if (_selectedSourceIndex == index && !_sourceWizardActive) {
-      return;
-    }
-    _selectedSourceIndex = index;
-    _sourceWizardActive = false;
-    _settingsSearchQuery = '';
-    _highlightedSettingsLeaf = sourcesLeafLabel(index);
-    notifyListeners();
+    _commandCoordinator.selectSourceIndex(index);
   }
 
   void startAddSourceWizard() {
-    _route = ShellRoute.settings;
-    _settingsPanel = SettingsPanel.sources;
-    _sourceWizardActive = true;
-    _sourceWizardStep = _contract.sourceWizardSteps.first;
-    _settingsSearchQuery = '';
-    _highlightedSettingsLeaf = null;
-    notifyListeners();
+    _commandCoordinator.startAddSourceWizard();
+  }
+
+  void startEditSourceWizard() {
+    _commandCoordinator.startEditSourceWizard();
   }
 
   void startReconnectWizard() {
-    _route = ShellRoute.settings;
-    _settingsPanel = SettingsPanel.sources;
-    _sourceWizardActive = true;
-    _sourceWizardStep =
-        _contract.sourceWizardSteps.contains(SourceWizardStep.credentials)
-            ? SourceWizardStep.credentials
-            : _contract.sourceWizardSteps.first;
-    _settingsSearchQuery = '';
-    _highlightedSettingsLeaf = null;
-    notifyListeners();
+    _commandCoordinator.startReconnectWizard();
+  }
+
+  void startImportWizard() {
+    _commandCoordinator.startImportWizard();
+  }
+
+  void updateSourceWizardField(String fieldLabel, String value) {
+    _commandCoordinator.updateSourceWizardField(fieldLabel, value);
+  }
+
+  void selectSourceProviderType(SourceProviderKind kind) {
+    _commandCoordinator.selectSourceProviderType(kind);
   }
 
   void selectSourceWizardStep(SourceWizardStep step) {
-    if (!_sourceWizardActive || _sourceWizardStep == step) {
-      return;
-    }
-    _sourceWizardStep = step;
-    notifyListeners();
+    _commandCoordinator.selectSourceWizardStep(step);
   }
 
-  void advanceSourceWizard() {
-    if (!_sourceWizardActive) {
-      return;
-    }
-    final int currentIndex = _contract.sourceWizardSteps.indexOf(
-      _sourceWizardStep,
-    );
-    if (currentIndex < _contract.sourceWizardSteps.length - 1) {
-      _sourceWizardStep = _contract.sourceWizardSteps[currentIndex + 1];
-      notifyListeners();
-      return;
-    }
-    _sourceWizardActive = false;
-    notifyListeners();
+  Future<void> advanceSourceWizard() async {
+    await _commandCoordinator.advanceSourceWizard();
   }
 
   void retreatSourceWizard() {
-    if (!_sourceWizardActive) {
-      return;
-    }
-    final int currentIndex = _contract.sourceWizardSteps.indexOf(
-      _sourceWizardStep,
-    );
-    if (currentIndex > 0) {
-      _sourceWizardStep = _contract.sourceWizardSteps[currentIndex - 1];
-      notifyListeners();
-      return;
-    }
-    _sourceWizardActive = false;
-    notifyListeners();
+    _commandCoordinator.retreatSourceWizard();
   }
 
   void updateSettingsSearchQuery(String value) {
-    if (_settingsSearchQuery == value) {
-      return;
-    }
-    _settingsSearchQuery = value;
-    _highlightedSettingsLeaf = null;
-    notifyListeners();
+    _commandCoordinator.updateSettingsSearchQuery(value);
   }
 
   void clearSettingsSearch() {
-    if (_settingsSearchQuery.isEmpty && _highlightedSettingsLeaf == null) {
-      return;
-    }
-    _settingsSearchQuery = '';
-    _highlightedSettingsLeaf = null;
-    notifyListeners();
+    _commandCoordinator.clearSettingsSearch();
   }
 
   void openSettingsLeaf({
@@ -333,16 +367,18 @@ class ShellViewModel extends ChangeNotifier {
     required String leafLabel,
     int? sourceIndex,
   }) {
-    _route = ShellRoute.settings;
-    _settingsPanel = panel;
-    _settingsSearchQuery = leafLabel;
-    _highlightedSettingsLeaf = leafLabel;
-    _sourceWizardActive = false;
-    if (panel == SettingsPanel.sources && sourceIndex != null) {
-      _selectedSourceIndex = sourceIndex;
-    }
-    notifyListeners();
+    _commandCoordinator.openSettingsLeaf(
+      panel: panel,
+      leafLabel: leafLabel,
+      sourceIndex: sourceIndex,
+    );
   }
 
-  static String sourcesLeafLabel(int index) => 'source:$index';
+  @override
+  void dispose() {
+    _disposed = true;
+    _commandCoordinator.dispose();
+    super.dispose();
+  }
+
 }

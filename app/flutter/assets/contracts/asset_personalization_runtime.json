@@ -1,0 +1,215 @@
+{
+  "title": "CrispyTivi Personalization Runtime",
+  "version": "1",
+  "startup_route": "Home",
+  "continue_watching": [
+    {
+      "kind": "movie",
+      "content_key": "the-last-harbor",
+      "title": "The Last Harbor",
+      "caption": "01:24 / 02:11 \u00b7 Resume",
+      "summary": "Continue from your last movie position.",
+      "progress_label": "01:24 / 02:11 \u00b7 Resume",
+      "progress_value": 0.64,
+      "resume_position_seconds": 5040,
+      "last_viewed_at": "2026-04-12T21:15:00Z",
+      "detail_lines": [
+        "Movie \u00b7 Thriller",
+        "Resume from your last position."
+      ],
+      "artwork": {
+        "kind": "asset",
+        "value": "assets/mocks/poster-shell-1.jpg"
+      },
+      "playback_source": {
+        "kind": "movie",
+        "source_key": "media_library",
+        "content_key": "the-last-harbor",
+        "source_label": "Movies",
+        "handoff_label": "Open movie"
+      },
+      "playback_stream": {
+        "uri": "https://stream.crispy-tivi.test/media/the-last-harbor.m3u8",
+        "transport": "hls",
+        "live": false,
+        "seekable": true,
+        "resume_position_seconds": 5040,
+        "source_options": [
+          {
+            "id": "primary",
+            "label": "Preferred source",
+            "uri": "https://stream.crispy-tivi.test/media/the-last-harbor.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 5040
+          }
+        ],
+        "quality_options": [
+          {
+            "id": "auto",
+            "label": "Auto",
+            "uri": "https://stream.crispy-tivi.test/media/the-last-harbor.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 5040
+          }
+        ],
+        "audio_options": [
+          {
+            "id": "audio-main",
+            "label": "English 5.1",
+            "uri": "https://stream.crispy-tivi.test/media/the-last-harbor/audio-main.aac",
+            "language": "en"
+          }
+        ],
+        "subtitle_options": [
+          {
+            "id": "subs-en",
+            "label": "English CC",
+            "uri": "https://stream.crispy-tivi.test/media/the-last-harbor/subtitles-en.vtt",
+            "language": "en"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "episode",
+      "content_key": "S1:E2",
+      "title": "Shadow Signals",
+      "caption": "S1:E2 \u00b7 18 min left",
+      "summary": "Continue the current episode from the saved position.",
+      "progress_label": "31:00 / 49:00 \u00b7 Resume",
+      "progress_value": 0.63,
+      "resume_position_seconds": 1860,
+      "last_viewed_at": "2026-04-12T22:40:00Z",
+      "detail_lines": [
+        "Season 1 \u00b7 Episode 2",
+        "Resume from your last episode position."
+      ],
+      "artwork": {
+        "kind": "asset",
+        "value": "assets/mocks/poster-shell-5.jpg"
+      },
+      "playback_source": {
+        "kind": "episode",
+        "source_key": "shadow-signals",
+        "content_key": "S1:E2",
+        "source_label": "Series",
+        "handoff_label": "Open episode"
+      },
+      "playback_stream": {
+        "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e2.m3u8",
+        "transport": "hls",
+        "live": false,
+        "seekable": true,
+        "resume_position_seconds": 1860,
+        "source_options": [
+          {
+            "id": "primary",
+            "label": "Preferred source",
+            "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e2.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 1860
+          }
+        ],
+        "quality_options": [
+          {
+            "id": "auto",
+            "label": "Auto",
+            "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e2.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 1860
+          }
+        ],
+        "audio_options": [
+          {
+            "id": "audio-main",
+            "label": "English 5.1",
+            "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e2/audio-main.aac",
+            "language": "en"
+          }
+        ],
+        "subtitle_options": [
+          {
+            "id": "subs-en",
+            "label": "English CC",
+            "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e2/subtitles-en.vtt",
+            "language": "en"
+          }
+        ]
+      }
+    }
+  ],
+  "recently_viewed": [
+    {
+      "kind": "movie",
+      "content_key": "the-last-harbor",
+      "title": "The Last Harbor",
+      "caption": "Thriller",
+      "summary": "Recently viewed film.",
+      "progress_label": "01:24 / 02:11 \u00b7 Resume",
+      "progress_value": 0.64,
+      "resume_position_seconds": 5040,
+      "last_viewed_at": "2026-04-12T21:15:00Z",
+      "detail_lines": [
+        "Movie \u00b7 Thriller"
+      ],
+      "artwork": {
+        "kind": "asset",
+        "value": "assets/mocks/poster-shell-1.jpg"
+      }
+    },
+    {
+      "kind": "episode",
+      "content_key": "S1:E2",
+      "title": "Shadow Signals",
+      "caption": "Sci-fi drama",
+      "summary": "Recently viewed episode.",
+      "progress_label": "31:00 / 49:00 \u00b7 Resume",
+      "progress_value": 0.63,
+      "resume_position_seconds": 1860,
+      "last_viewed_at": "2026-04-12T22:40:00Z",
+      "detail_lines": [
+        "Season 1 \u00b7 Episode 2"
+      ],
+      "artwork": {
+        "kind": "asset",
+        "value": "assets/mocks/poster-shell-5.jpg"
+      }
+    },
+    {
+      "kind": "series",
+      "content_key": "chef-after-dark",
+      "title": "Chef After Dark",
+      "caption": "Food series",
+      "summary": "Recently viewed series lane.",
+      "progress_label": "Fresh episode available",
+      "progress_value": 0.0,
+      "resume_position_seconds": 0,
+      "last_viewed_at": "2026-04-11T20:30:00Z",
+      "detail_lines": [
+        "Series \u00b7 Food"
+      ],
+      "artwork": {
+        "kind": "asset",
+        "value": "assets/mocks/poster-shell-2.jpg"
+      }
+    }
+  ],
+  "favorite_media_keys": [
+    "the-last-harbor",
+    "chef-after-dark"
+  ],
+  "favorite_channel_numbers": [
+    "118"
+  ],
+  "notes": [
+    "Asset-backed personalization defaults for the retained runtime boundary."
+  ]
+}

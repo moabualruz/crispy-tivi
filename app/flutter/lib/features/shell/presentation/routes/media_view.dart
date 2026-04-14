@@ -2,10 +2,12 @@ import 'package:crispy_tivi/core/theme/crispy_shell_controls.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_icons.dart';
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
+import 'package:crispy_tivi/features/shell/data/playback_session_runtime.dart';
+import 'package:crispy_tivi/features/shell/domain/media_runtime.dart';
 import 'package:crispy_tivi/features/shell/domain/player_session.dart';
-import 'package:crispy_tivi/features/shell/domain/shell_content.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_models.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_navigation.dart';
+import 'package:crispy_tivi/features/shell/presentation/media/media_presentation_state.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/feature_hero.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/section_selector.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/shell_controls.dart';
@@ -14,103 +16,123 @@ import 'package:flutter/material.dart';
 
 class MediaView extends StatelessWidget {
   const MediaView({
-    required this.content,
-    required this.availableScopes,
-    required this.panel,
-    required this.scope,
+    required this.state,
+    required this.runtime,
     required this.onSelectScope,
-    required this.seriesSeasonIndex,
-    required this.seriesEpisodeIndex,
-    required this.launchedSeriesEpisodeIndex,
     required this.onSelectSeriesSeasonIndex,
     required this.onSelectSeriesEpisodeIndex,
     required this.onLaunchSeriesEpisode,
     required this.onLaunchPlayer,
+    required this.onToggleWatchlist,
+    required this.watchlistContentKeys,
     super.key,
   });
 
-  final ShellContentSnapshot content;
-  final List<MediaScope> availableScopes;
-  final MediaPanel panel;
-  final MediaScope scope;
+  final MediaPresentationState state;
+  final MediaRuntimeSnapshot runtime;
   final ValueChanged<MediaScope> onSelectScope;
-  final int seriesSeasonIndex;
-  final int seriesEpisodeIndex;
-  final int? launchedSeriesEpisodeIndex;
   final ValueChanged<int> onSelectSeriesSeasonIndex;
   final ValueChanged<int> onSelectSeriesEpisodeIndex;
   final VoidCallback onLaunchSeriesEpisode;
   final ValueChanged<PlayerSession> onLaunchPlayer;
+  final ValueChanged<String> onToggleWatchlist;
+  final List<String> watchlistContentKeys;
 
   @override
   Widget build(BuildContext context) {
-    final bool movies = panel == MediaPanel.movies;
+    if (!state.hasContent) {
+      return DecoratedBox(
+        decoration: CrispyShellRoles.panelDecoration(),
+        child: Padding(
+          padding: const EdgeInsets.all(CrispyOverhaulTokens.section),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'No media libraries yet',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: CrispyOverhaulTokens.small),
+              Text(
+                'Movies and series appear after a provider imports media catalogs.',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: CrispyOverhaulTokens.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    final bool movies = state.movies;
     return ListView(
       key: const Key('media-list-view'),
       padding: EdgeInsets.zero,
       children: <Widget>[
         SectionSelector<MediaScope>(
           title: movies ? 'Film scope' : 'Series scope',
-          values: availableScopes,
-          selected: scope,
+          values: state.availableScopes,
+          selected: state.scope,
           labelBuilder: (MediaScope value) => value.label,
           keyBuilder: (MediaScope value) => 'media-scope-${value.name}',
           onSelect: onSelectScope,
         ),
         const SizedBox(height: CrispyOverhaulTokens.small),
         if (movies) ...<Widget>[
-          _MediaLeadRow(content: content, movies: movies),
+          _MediaLeadRow(state: state, movies: movies),
           const SizedBox(height: CrispyOverhaulTokens.section),
           _MovieDetailCard(
             key: const Key('movie-detail-card'),
-            feature: content.movieHero,
-            featuredFilm: content.topFilms.first,
+            feature: state.movieHero,
+            featuredFilm: state.topFilms.first,
+            runtime: runtime,
             onLaunchPlayer: onLaunchPlayer,
+            onToggleWatchlist: onToggleWatchlist,
+            watchlistContentKeys: watchlistContentKeys,
           ),
           const SizedBox(height: CrispyOverhaulTokens.section),
           SectionShelf(
-            title: _shelfTitle(movies, scope),
-            items: content.topFilms,
+            title: _shelfTitle(movies, state.scope),
+            items: state.topFilms,
             showRank: true,
           ),
           const SizedBox(height: CrispyOverhaulTokens.section),
           SectionShelf(
             title: 'Continue Watching Films',
-            items: content.continueWatching,
+            items: state.continueWatching,
           ),
         ] else ...<Widget>[
           _SeriesDetailPanel(
             key: const Key('series-detail-panel'),
-            detail: content.seriesDetail,
-            selectedSeasonIndex: seriesSeasonIndex,
-            selectedEpisodeIndex: seriesEpisodeIndex,
-            launchedEpisodeIndex: launchedSeriesEpisodeIndex,
+            detail: state.seriesDetail,
+            runtime: runtime,
+            selectedSeasonIndex: state.seriesSeasonIndex,
+            selectedEpisodeIndex: state.seriesEpisodeIndex,
+            launchedEpisodeIndex: state.launchedSeriesEpisodeIndex,
             onSelectSeasonIndex: onSelectSeriesSeasonIndex,
             onSelectEpisodeIndex: onSelectSeriesEpisodeIndex,
             onLaunchEpisode: () {
               onLaunchSeriesEpisode();
               onLaunchPlayer(
                 _buildSeriesPlayerSession(
-                  detail: content.seriesDetail,
-                  selectedSeasonIndex: seriesSeasonIndex,
-                  selectedEpisodeIndex: seriesEpisodeIndex,
+                  detail: state.seriesDetail,
+                  runtime: runtime,
+                  selectedSeasonIndex: state.seriesSeasonIndex,
+                  selectedEpisodeIndex: state.seriesEpisodeIndex,
                 ),
               );
             },
           ),
           const SizedBox(height: CrispyOverhaulTokens.section),
-          _MediaLeadRow(content: content, movies: movies),
+          _MediaLeadRow(state: state, movies: movies),
           const SizedBox(height: CrispyOverhaulTokens.section),
-          _MediaFocusCard(content: content, movies: movies),
+          _MediaFocusCard(state: state, movies: movies),
           const SizedBox(height: CrispyOverhaulTokens.section),
-          SectionShelf(
-            title: 'Next Up Series',
-            items: content.continueWatching,
-          ),
+          SectionShelf(title: 'Next Up Series', items: state.continueWatching),
           const SizedBox(height: CrispyOverhaulTokens.section),
           SectionShelf(
-            title: _shelfTitle(movies, scope),
-            items: content.topSeries,
+            title: _shelfTitle(movies, state.scope),
+            items: state.topSeries,
             showRank: true,
           ),
         ],
@@ -120,15 +142,15 @@ class MediaView extends StatelessWidget {
 }
 
 class _MediaLeadRow extends StatelessWidget {
-  const _MediaLeadRow({required this.content, required this.movies});
+  const _MediaLeadRow({required this.state, required this.movies});
 
-  final ShellContentSnapshot content;
+  final MediaPresentationState state;
   final bool movies;
 
   @override
   Widget build(BuildContext context) {
-    final HeroFeature feature = movies ? content.movieHero : content.seriesHero;
-    final Widget focusCard = _MediaFocusCard(content: content, movies: movies);
+    final HeroFeature feature = movies ? state.movieHero : state.seriesHero;
+    final Widget focusCard = _MediaFocusCard(state: state, movies: movies);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -141,14 +163,14 @@ class _MediaLeadRow extends StatelessWidget {
 }
 
 class _MediaFocusCard extends StatelessWidget {
-  const _MediaFocusCard({required this.content, required this.movies});
+  const _MediaFocusCard({required this.state, required this.movies});
 
-  final ShellContentSnapshot content;
+  final MediaPresentationState state;
   final bool movies;
 
   @override
   Widget build(BuildContext context) {
-    final HeroFeature feature = movies ? content.movieHero : content.seriesHero;
+    final HeroFeature feature = movies ? state.movieHero : state.seriesHero;
     final List<_MediaDetailLine> lines =
         movies
             ? <_MediaDetailLine>[
@@ -253,6 +275,7 @@ class _SeriesDetailPanel extends StatelessWidget {
   const _SeriesDetailPanel({
     super.key,
     required this.detail,
+    required this.runtime,
     required this.selectedSeasonIndex,
     required this.selectedEpisodeIndex,
     required this.launchedEpisodeIndex,
@@ -262,6 +285,7 @@ class _SeriesDetailPanel extends StatelessWidget {
   });
 
   final SeriesDetailContent detail;
+  final MediaRuntimeSnapshot runtime;
   final int selectedSeasonIndex;
   final int selectedEpisodeIndex;
   final int? launchedEpisodeIndex;
@@ -348,7 +372,8 @@ class _SeriesDetailPanel extends StatelessWidget {
               alignment: AlignmentDirectional.centerStart,
               child: ShellControlButton(
                 controlKey: const Key('series-launch-action'),
-                label: launchReady ? 'Playing now' : selectedEpisode.handoffLabel,
+                label:
+                    launchReady ? 'Playing now' : selectedEpisode.handoffLabel,
                 icon: CrispyShellIcons.contentAction(
                   launchReady ? 'Playing now' : selectedEpisode.handoffLabel,
                 ),
@@ -397,17 +422,30 @@ class _MovieDetailCard extends StatelessWidget {
   const _MovieDetailCard({
     required this.feature,
     required this.featuredFilm,
+    required this.runtime,
     required this.onLaunchPlayer,
+    required this.onToggleWatchlist,
+    required this.watchlistContentKeys,
     super.key,
   });
 
   final HeroFeature feature;
   final ShelfItem featuredFilm;
+  final MediaRuntimeSnapshot runtime;
   final ValueChanged<PlayerSession> onLaunchPlayer;
+  final ValueChanged<String> onToggleWatchlist;
+  final List<String> watchlistContentKeys;
 
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
+    final MediaRuntimeItemSnapshot? playbackItem = _findMoviePlaybackItem(
+      runtime,
+      featuredFilm.title,
+    );
+    final String contentKey =
+        playbackItem?.playbackSource?.contentKey ?? featuredFilm.title;
+    final bool watchlisted = watchlistContentKeys.contains(contentKey);
     return DecoratedBox(
       decoration: CrispyShellRoles.infoPlateDecoration(),
       child: Padding(
@@ -460,25 +498,29 @@ class _MovieDetailCard extends StatelessWidget {
             const SizedBox(height: CrispyOverhaulTokens.large),
             Row(
               children: <Widget>[
-              Expanded(
-                child: _MediaActionSurface(
-                  key: const Key('movie-player-launch'),
-                  label: 'Play movie',
-                  selected: true,
-                  onTap: () => onLaunchPlayer(
-                    _buildMoviePlayerSession(
-                      feature: feature,
-                      featuredFilm: featuredFilm,
-                    ),
+                Expanded(
+                  child: _MediaActionSurface(
+                    key: const Key('movie-player-launch'),
+                    label: 'Play movie',
+                    selected: true,
+                    onTap:
+                        () => onLaunchPlayer(
+                          _buildMoviePlayerSession(
+                            feature: feature,
+                            featuredFilm: featuredFilm,
+                            runtime: runtime,
+                          ),
+                        ),
                   ),
                 ),
-              ),
                 const SizedBox(width: CrispyOverhaulTokens.small),
                 Expanded(
                   child: _MediaActionSurface(
-                    label: feature.secondaryAction,
+                    key: const Key('movie-watchlist-toggle'),
+                    label:
+                        watchlisted ? 'In watchlist' : feature.secondaryAction,
                     selected: false,
-                    onTap: () {},
+                    onTap: () => onToggleWatchlist(contentKey),
                   ),
                 ),
               ],
@@ -570,7 +612,12 @@ String _shelfTitle(bool movies, MediaScope scope) {
 PlayerSession _buildMoviePlayerSession({
   required HeroFeature feature,
   required ShelfItem featuredFilm,
+  required MediaRuntimeSnapshot runtime,
 }) {
+  final MediaRuntimeItemSnapshot? playbackItem = _findMoviePlaybackItem(
+    runtime,
+    featuredFilm.title,
+  );
   return PlayerSession(
     kind: PlayerContentKind.movie,
     originLabel: 'Media · Movies',
@@ -590,37 +637,33 @@ PlayerSession _buildMoviePlayerSession({
           'Back collapses player surfaces before returning to Media.',
         ],
         artwork: featuredFilm.artwork ?? feature.artwork,
+        playbackSource: playbackItem?.playbackSource,
+        playbackStream: playbackItem?.playbackStream,
       ),
     ],
     activeIndex: 0,
     primaryActionLabel: 'Resume',
     secondaryActionLabel: 'Restart',
-    chooserGroups: const <PlayerChooserGroup>[
-      PlayerChooserGroup(
-        kind: PlayerChooserKind.audio,
-        title: 'Audio',
-        options: <String>['English 5.1', 'English Stereo'],
-        selectedIndex: 0,
+    playbackUri: playbackItem?.playbackStream?.uri,
+    chooserGroups: chooserGroupsForQueueItem(
+      PlayerQueueItem(
+        eyebrow: 'Featured film',
+        title: featuredFilm.title,
+        subtitle: featuredFilm.caption,
+        summary: feature.summary,
+        progressLabel: '01:24 / 02:11 · Resume from your last position',
+        progressValue: 0.64,
+        badges: const <String>['4K', 'Dolby Audio', 'Resume'],
+        detailLines: <String>[
+          feature.title,
+          'Feature playback keeps shell chrome out of the way.',
+          'Back collapses player surfaces before returning to Media.',
+        ],
+        artwork: featuredFilm.artwork ?? feature.artwork,
+        playbackSource: playbackItem?.playbackSource,
+        playbackStream: playbackItem?.playbackStream,
       ),
-      PlayerChooserGroup(
-        kind: PlayerChooserKind.subtitles,
-        title: 'Subtitles',
-        options: <String>['Off', 'English CC'],
-        selectedIndex: 0,
-      ),
-      PlayerChooserGroup(
-        kind: PlayerChooserKind.quality,
-        title: 'Quality',
-        options: <String>['Auto', '4K HDR', '1080p'],
-        selectedIndex: 0,
-      ),
-      PlayerChooserGroup(
-        kind: PlayerChooserKind.source,
-        title: 'Source',
-        options: <String>['Preferred source', 'Mirror source'],
-        selectedIndex: 0,
-      ),
-    ],
+    ),
     statsLines: const <String>[
       'Resolved stream: direct movie playback',
       'Playback path: internal player',
@@ -630,18 +673,24 @@ PlayerSession _buildMoviePlayerSession({
 
 PlayerSession _buildSeriesPlayerSession({
   required SeriesDetailContent detail,
+  required MediaRuntimeSnapshot runtime,
   required int selectedSeasonIndex,
   required int selectedEpisodeIndex,
 }) {
   final SeriesSeasonDetail season = detail.seasons[selectedSeasonIndex];
+  final MediaRuntimeSeasonSnapshot runtimeSeason =
+      runtime.seriesDetail.seasons[selectedSeasonIndex];
   final List<PlayerQueueItem> queue = season.episodes
+      .asMap()
+      .entries
       .map(
-        (SeriesEpisodeDetail episode) => PlayerQueueItem(
+        (MapEntry<int, SeriesEpisodeDetail> entry) => PlayerQueueItem(
           eyebrow: season.label,
-          title: episode.title,
-          subtitle: '${episode.code} · ${episode.durationLabel}',
-          summary: episode.summary,
-          progressLabel: '00:08 / ${episode.durationLabel} · Continue episode',
+          title: entry.value.title,
+          subtitle: '${entry.value.code} · ${entry.value.durationLabel}',
+          summary: entry.value.summary,
+          progressLabel:
+              '00:08 / ${entry.value.durationLabel} · Continue episode',
           progressValue: 0.18,
           badges: const <String>['Episode', 'Next-up enabled'],
           detailLines: <String>[
@@ -649,6 +698,8 @@ PlayerSession _buildSeriesPlayerSession({
             'Episode switching stays inside player.',
             'Back collapses player overlays before exiting to Series.',
           ],
+          playbackSource: runtimeSeason.episodes[entry.key].playbackSource,
+          playbackStream: runtimeSeason.episodes[entry.key].playbackStream,
         ),
       )
       .toList(growable: false);
@@ -660,35 +711,26 @@ PlayerSession _buildSeriesPlayerSession({
     activeIndex: selectedEpisodeIndex,
     primaryActionLabel: 'Resume',
     secondaryActionLabel: 'Next Episode',
-    chooserGroups: const <PlayerChooserGroup>[
-      PlayerChooserGroup(
-        kind: PlayerChooserKind.audio,
-        title: 'Audio',
-        options: <String>['Original', 'Dubbed'],
-        selectedIndex: 0,
-      ),
-      PlayerChooserGroup(
-        kind: PlayerChooserKind.subtitles,
-        title: 'Subtitles',
-        options: <String>['Off', 'English', 'Deutsch'],
-        selectedIndex: 1,
-      ),
-      PlayerChooserGroup(
-        kind: PlayerChooserKind.quality,
-        title: 'Quality',
-        options: <String>['Auto', '1080p', '720p'],
-        selectedIndex: 0,
-      ),
-      PlayerChooserGroup(
-        kind: PlayerChooserKind.source,
-        title: 'Source',
-        options: <String>['Primary source', 'Archive source'],
-        selectedIndex: 0,
-      ),
-    ],
+    playbackUri: queue[selectedEpisodeIndex].playbackStream?.uri,
+    chooserGroups: chooserGroupsForQueueItem(queue[selectedEpisodeIndex]),
     statsLines: const <String>[
       'Autoplay next: queued',
       'Switching path: same-season without exit',
     ],
   );
+}
+
+MediaRuntimeItemSnapshot? _findMoviePlaybackItem(
+  MediaRuntimeSnapshot runtime,
+  String title,
+) {
+  for (final MediaRuntimeCollectionSnapshot collection
+      in runtime.movieCollections) {
+    for (final MediaRuntimeItemSnapshot item in collection.items) {
+      if (item.title == title) {
+        return item;
+      }
+    }
+  }
+  return null;
 }

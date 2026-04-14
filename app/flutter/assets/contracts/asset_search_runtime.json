@@ -1,0 +1,92 @@
+{
+  "title": "CrispyTivi Search Runtime",
+  "version": "1",
+  "query": "",
+  "active_group_title": "Live TV",
+  "groups": [
+    {
+      "title": "Live TV",
+      "summary": "Live channels and guide-linked results.",
+      "selected": true,
+      "results": [
+        {
+          "title": "Arena Live",
+          "caption": "Channel 118",
+          "source_label": "Live TV",
+          "handoff_label": "Open channel",
+          "artwork": {
+            "kind": "asset",
+            "value": "assets/mocks/poster-shell-5.jpg"
+          }
+        },
+        {
+          "title": "Cinema Vault",
+          "caption": "Channel 205",
+          "source_label": "Live TV",
+          "handoff_label": "Open channel",
+          "artwork": {
+            "kind": "asset",
+            "value": "assets/mocks/poster-shell-2.jpg"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Movies",
+      "summary": "Film results and featured rails.",
+      "selected": false,
+      "results": [
+        {
+          "title": "The Last Harbor",
+          "caption": "Thriller",
+          "source_label": "Movies",
+          "handoff_label": "Open movie",
+          "artwork": {
+            "kind": "asset",
+            "value": "assets/mocks/poster-shell-1.jpg"
+          }
+        },
+        {
+          "title": "Atlas Run",
+          "caption": "Action",
+          "source_label": "Movies",
+          "handoff_label": "Open movie",
+          "artwork": {
+            "kind": "asset",
+            "value": "assets/mocks/poster-shell-3.jpg"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Series",
+      "summary": "Series results and episode-ready handoff.",
+      "selected": false,
+      "results": [
+        {
+          "title": "Shadow Signals",
+          "caption": "Sci-fi drama",
+          "source_label": "Series",
+          "handoff_label": "Open series",
+          "artwork": {
+            "kind": "asset",
+            "value": "assets/mocks/poster-shell-5.jpg"
+          }
+        },
+        {
+          "title": "Northline",
+          "caption": "New season",
+          "source_label": "Series",
+          "handoff_label": "Open series",
+          "artwork": {
+            "kind": "asset",
+            "value": "assets/mocks/poster-shell-4.jpg"
+          }
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "Rust-owned search runtime snapshot."
+  ]
+}

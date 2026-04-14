@@ -248,6 +248,47 @@ After Phase 6 is fully complete:
   rework until the phase is actually clean, rerun verification, and update the
   docs before that phase may close
 
+### Phase 18+: full implementation continuation
+
+Current follow-on state:
+
+- Phase 18 complete
+- Phase 19 complete
+- Phase 20 complete
+- Phase 21 complete
+- Phase 22 complete
+- Phase 23 complete
+- Phase 24 complete
+- Phase 25 complete
+- Phase 26 complete
+- Phase 27 complete
+- Phase 28 complete
+- Phase 29 complete
+- next allowed lane: Phase 30
+
+Post-Phase-29 remediation note:
+
+- because Phase 29 closed as `not ready`, execution must continue through the
+  documented remediation track in
+  `docs/overhaul/plans/v2-post-phase29-remediation-plan.md`
+- Phase 30 provider persistence/import runtime is complete
+- Phase 31 provider-driven runtime hydration is complete
+- next allowed lane: Phase 32
+
+Foundation-track note:
+
+- Phases 18 to 24 close the retained runtime foundation track only.
+- They do not by themselves prove that:
+  - fresh installs are fully truthful
+  - demo/test data is fully gated
+  - provider/setup/auth/import flows are fully runtime-backed
+  - every route/widget is fully audited in both real mode and demo/test mode
+  - real-source/manual validation is complete
+- the audit/completion handoff lives in:
+  - `docs/overhaul/plans/v2-phase25-audit-ledger.md`
+  - `docs/overhaul/plans/v2-phase25-research-notes.md`
+  - `docs/overhaul/plans/v2-phase25-repair-order.md`
+
 ### Player pre-code design gate
 
 Before **any** player implementation code starts:
@@ -282,10 +323,12 @@ Completed in this phase:
 - chooser overlays exist for audio, subtitles, quality, and source
 - player unwind order follows the installed player gate
 - player UX borrow rules are documented in `v2-player-reference-study.md`
+- this phase closes only the retained player baseline for the UI-first app, not
+  the final player product
 
 ### Phase 15 closure
 
-Phase 15 is now complete.
+Phase 15 is now complete as the UI-first app integration/hardening phase.
 
 Completed in this phase:
 
@@ -293,8 +336,9 @@ Completed in this phase:
   `Live TV`, `Media`, `Search`, `Settings`, and `Player`
 - final runtime-copy cleanup removed remaining internal/architecture language
   from surfaced UI where simpler product wording fit better
-- final verification evidence now exists for Rust, Flutter, Linux integration
-  smoke, Linux release build, web build, and browser-driven web smoke
+- final UI-first verification evidence now exists for Rust, Flutter, Linux
+  integration smoke, Linux release build, web build, and browser-driven web
+  smoke
 - Linux managed-build contamination is explicitly mitigated in the repo flow via
   `app/flutter/tool/restore_linux_release_state.sh`
 
@@ -309,6 +353,243 @@ Verification recorded for this phase:
 - `flutter build web`
 - Playwright screenshot evidence from the built web target:
   - `.playwright-cli/phase15-final-web.png`
+
+### Phase 16: player final UI/design completion
+
+This phase is now complete.
+
+Completed in this phase:
+
+- the player control language was re-audited against the approved study set and
+  current requirements
+- the retained player surface now has direct player-specific verification
+- the player design preview was refreshed as the current player preview
+- player UI/design evidence now exists separately from the broader shell tests
+
+### Phase 17: full implementation planning / execution reset
+
+This phase is now complete.
+
+Completed in this phase:
+
+- explicitly decompose the post-UI-first real implementation phases
+- stop describing UI-first baseline closure as end-product closure
+- define the later real implementation lanes for providers, playback, domain
+  logic, persistence, production hardening, full-app audit, demo/test gating,
+  provider/controller wiring, runtime-audit closure, and release validation
+- pin the shared Rust crate ecosystem and local study repos as required inputs
+  for the later full-runtime phases
+
+Output artifact:
+
+- `docs/overhaul/plans/v2-full-implementation-plan.md`
+- `docs/overhaul/plans/v2-implementation-reference-study.md`
+
+Next full-implementation sequence:
+
+- Phase 18 runtime contract reset
+- Phase 19 source/provider registry implementation
+- Phase 20 Live TV and EPG implementation
+- Phase 21 Media and Search implementation
+- Phase 21 carries retained asset-backed Media/Search runtime snapshots in the
+  data/domain boundary until provider-backed replacement lands
+- Phase 22 playback backend integration
+- Phase 23 persistence, resume, and personalization
+- Phase 24 production hardening
+- Phase 25 full app runtime audit
+- Phase 26 demo/test gating and first-run truth
+- Phase 27 provider/controller wiring completion
+- Phase 28 screen and widget runtime audit closure
+- Phase 29 release-readiness audit and field validation
+
+Current follow-on state:
+
+- Phase 18 complete
+- Phase 19 complete
+- Phase 20 complete
+- Phase 21 complete
+- Phase 22 complete
+- Phase 23 complete
+- Phase 24 complete
+- Phase 25 complete
+- Phase 26 complete
+- Phase 27 complete
+- Phase 28 complete
+- Phase 29 complete
+- next allowed lane: Phase 30
+
+Phase 18 closure:
+
+- retained Flutter repository interfaces now exist for contract, content,
+  source registry, and bootstrap loading
+- asset-backed implementations remain behind those interfaces
+- runtime replacement ownership for contract/content/bootstrap is recorded in
+  `docs/overhaul/plans/v2-phase18-runtime-contract-reset.md`
+
+Phase 19 closure:
+
+- Rust owns the typed source/provider registry schema in `crispy-ffi`
+- Flutter loads the source registry through a retained
+  `SourceRegistryRepository`
+- bootstrap now resolves contract, content, and source registry together
+- Settings-owned provider/auth/import state now derives from the runtime
+  source registry rather than legacy `ShellContent` source cards on the main
+  runtime path
+- injected shell tests may still derive fallback provider state from legacy
+  content fixtures when no source registry is supplied, but that path is now
+  test-only convenience rather than runtime source of truth
+- Phase 19 closure is recorded in
+  `docs/overhaul/plans/v2-phase19-source-provider-registry.md`
+
+Phase 20 closure:
+
+- Rust owns the typed live-TV runtime schema in `crispy-ffi`
+- Flutter loads the live-TV runtime through a retained
+  `LiveTvRuntimeRepository`
+- bootstrap now resolves contract, content, source registry, and live-TV
+  runtime together
+- the active Live TV route now derives browse groups, guide rows, selected
+  detail, and player-launch metadata from the retained live-TV runtime path
+  instead of heuristic group slicing from legacy shell content
+- injected shell tests may still derive a legacy live-TV fallback only when no
+  live-TV runtime is supplied explicitly
+- legacy live-TV fallback construction now belongs in data/bootstrap helpers,
+  not retained domain models, routes, or view-models
+- Phase 20 closure is recorded in
+  `docs/overhaul/plans/v2-phase20-live-tv-epg.md`
+
+Phase 25 closure target:
+
+- a full route/widget/workflow audit ledger exists for both:
+  - real runtime mode
+  - explicit demo/test mode
+- every known wiring gap is recorded with owner and repair order
+
+Phase 26 closure target:
+
+- seeded/demo data is unreachable on default boot
+- fresh installs land in true first-run onboarding with zero configured
+  providers
+- demo/test mode remains available only through explicit gating
+- closure recorded in
+  `docs/overhaul/plans/v2-phase26-demo-test-gating.md`
+
+Phase 27 closure target:
+
+- provider setup/auth/import/edit/reconnect flows are runtime-backed end to end
+- visible field types/options/validation come from retained runtime/controller
+  truth rather than scaffold data
+- closure recorded in
+  `docs/overhaul/plans/v2-phase27-provider-controller-wiring.md`
+
+Phase 28 closure:
+
+- active presentation fallback resolution was removed from the retained shell
+  path
+- Home now derives visible hero/live/continue-watching state from retained
+  runtime and personalization truth rather than shell-content backfill
+- Search now carries retained runtime query truth into presentation
+- non-source Settings panels are now retained runtime/diagnostics-backed
+  rather than shell-content-backed
+- player backend ownership moved from widget-local state into a retained
+  playback controller owned by the shell view-model
+- closure is recorded in
+  `docs/overhaul/plans/v2-phase28-screen-widget-runtime-audit.md`
+
+Phase 29 closure target:
+
+- real-source manual validation passes
+- release-readiness is reassessed after Phases 25 to 28 land
+
+Phase 29 closure:
+
+- manual validation against the saved Xtream test source proved the provider
+  account is healthy and returns live, VOD, and series catalogs
+- release readiness is explicitly judged as `not ready`
+- the blocker ledger is recorded in
+  `docs/overhaul/plans/v2-phase29-release-blockers.md`
+- the main blockers are:
+  - provider setup/import still commits only to local controller state
+  - real boot still hydrates empty runtime snapshots
+  - shared Rust provider crates remain unused in the active runtime crate graph
+  - real-source playback inside the app remains unproven
+
+Post-Phase-29 remediation sequence:
+
+- Phase 30 provider persistence and import runtime
+- Phase 31 provider-driven runtime hydration
+- Phase 32 Rust boundary correction + source/provider migration + runtime
+  hydration migration + real-source in-app proof
+- Phase 35 playback and diagnostics Rust migration + release-readiness rerun
+
+Current remediation state:
+
+- Phase 30 complete
+- Phase 31 complete
+- Phase 32 complete
+- Phase 35 complete
+- remediation track outcome: not ready
+- blocker ledger recorded in
+  `docs/overhaul/plans/v2-phase35-release-blockers.md`
+- follow-on cleanup track documented in
+  `docs/overhaul/plans/v2-post-phase35-release-cleanup-plan.md`
+- Phase 38 shared XMLTV/catchup activation complete
+- Phase 39 release-warning cleanup complete
+- cleanup track outcome: ready
+- next allowed lane: none inside the current track
+
+Phase 30 closure:
+
+- source-registry persistence now exists on Linux and web through a retained
+  source-registry store/repository path
+- source wizard completion now saves configured providers through the retained
+  source registry repository instead of only mutating local controller state
+- real runtime bootstrap now preserves persisted configured providers instead
+  of clearing them back to empty on every boot
+- closure is recorded in
+  `docs/overhaul/plans/v2-phase30-provider-persistence-import-runtime.md`
+
+Phase 31 closure:
+
+- retained real boot now loads persisted personalization and retained runtime
+  templates, then hydrates Live TV, Media, and Search from configured-provider
+  capability truth
+- unsupported lanes stay empty instead of showing unrelated demo/runtime
+  shelves
+- configured-provider display names and endpoint labels now survive retained
+  source-registry save/load and feed the hydrated runtime path
+- closure is recorded in
+  `docs/overhaul/plans/v2-phase31-provider-driven-runtime-hydration.md`
+
+Phase 21 closure:
+
+- Rust owns the retained media/search runtime schemas in `crispy-ffi`
+- Flutter loads retained media/search runtime through `MediaRuntimeRepository`
+  and `SearchRuntimeRepository`
+- bootstrap now resolves contract, content, source registry, live-TV runtime,
+  media runtime, and search runtime together
+- the active Media route now derives movie/series rails and detail state from
+  retained media runtime rather than legacy shell content
+- the active Search route now derives groups/results/handoff state from
+  retained search runtime rather than legacy shell content
+- injected shell tests may still derive Media/Search fallback only when no
+  media/search runtime is supplied explicitly
+- legacy Media/Search fallback construction belongs in data/bootstrap helpers,
+  not retained domain models, routes, or view-models
+- Phase 21 closure is recorded in
+  `docs/overhaul/plans/v2-phase21-media-search.md`
+
+Runtime-foundation rule for the follow-on phases:
+
+- Phase 18 onward must prefer the existing shared Rust crates in
+  `rust/shared/crispy-*` for protocol and business responsibilities before
+  inventing new app-local replacements
+- Phase 18 onward must also stay grounded in the local study repos under
+  `for_study/`, especially:
+  - `Megacubo` for setup/history/list-management expectations
+  - `Hypnotix` for provider simplicity and type framing
+  - `IPTVnator` for provider/data-source architecture, large-list handling, EPG
+    strategy, and persisted favorites/recent-items expectations
 
 ## Guardrails
 

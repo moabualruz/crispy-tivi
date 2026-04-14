@@ -1,19 +1,21 @@
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_controls.dart';
+import 'package:crispy_tivi/features/shell/domain/live_tv_runtime.dart';
 import 'package:crispy_tivi/features/shell/domain/player_session.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_content.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_models.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_navigation.dart';
+import 'package:crispy_tivi/features/shell/presentation/live_tv/live_tv_presentation_adapter.dart';
+import 'package:crispy_tivi/features/shell/presentation/live_tv/live_tv_presentation_state.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/shell_controls.dart';
 import 'package:flutter/material.dart';
 
 class LiveTvView extends StatelessWidget {
   const LiveTvView({
-    required this.content,
-    required this.availableGroups,
+    required this.runtime,
     required this.panel,
-    required this.group,
+    required this.groupId,
     required this.focusedChannelIndex,
     required this.playingChannelIndex,
     required this.onSelectGroup,
@@ -23,34 +25,30 @@ class LiveTvView extends StatelessWidget {
     super.key,
   });
 
-  final ShellContentSnapshot content;
-  final List<LiveTvGroup> availableGroups;
+  final LiveTvRuntimeSnapshot runtime;
   final LiveTvPanel panel;
-  final LiveTvGroup group;
+  final String groupId;
   final int focusedChannelIndex;
   final int playingChannelIndex;
-  final ValueChanged<LiveTvGroup> onSelectGroup;
+  final ValueChanged<String> onSelectGroup;
   final ValueChanged<int> onSelectChannel;
   final VoidCallback onActivateChannel;
   final ValueChanged<PlayerSession> onLaunchPlayer;
 
   @override
   Widget build(BuildContext context) {
-    if (panel == LiveTvPanel.guide) {
-      return _GuideView(
-        content: content,
-        availableGroups: availableGroups,
-        group: group,
-        focusedChannelIndex: focusedChannelIndex,
-        onSelectGroup: onSelectGroup,
-      );
-    }
-    return _ChannelsView(
-      content: content,
-      availableGroups: availableGroups,
-      group: group,
+    final LiveTvPresentationState state = LiveTvPresentationAdapter.build(
+      runtime: runtime,
+      panel: panel,
+      groupId: groupId,
       focusedChannelIndex: focusedChannelIndex,
       playingChannelIndex: playingChannelIndex,
+    );
+    if (panel == LiveTvPanel.guide) {
+      return _GuideView(state: state, onSelectGroup: onSelectGroup);
+    }
+    return _ChannelsView(
+      state: state,
       onSelectGroup: onSelectGroup,
       onSelectChannel: onSelectChannel,
       onActivateChannel: onActivateChannel,
@@ -61,55 +59,28 @@ class LiveTvView extends StatelessWidget {
 
 class _ChannelsView extends StatelessWidget {
   const _ChannelsView({
-    required this.content,
-    required this.availableGroups,
-    required this.group,
-    required this.focusedChannelIndex,
-    required this.playingChannelIndex,
+    required this.state,
     required this.onSelectGroup,
     required this.onSelectChannel,
     required this.onActivateChannel,
     required this.onLaunchPlayer,
   });
 
-  final ShellContentSnapshot content;
-  final List<LiveTvGroup> availableGroups;
-  final LiveTvGroup group;
-  final int focusedChannelIndex;
-  final int playingChannelIndex;
-  final ValueChanged<LiveTvGroup> onSelectGroup;
+  final LiveTvPresentationState state;
+  final ValueChanged<String> onSelectGroup;
   final ValueChanged<int> onSelectChannel;
   final VoidCallback onActivateChannel;
   final ValueChanged<PlayerSession> onLaunchPlayer;
 
   @override
   Widget build(BuildContext context) {
-    final List<ChannelEntry> channels = _channelsForGroup(
-      content.liveTvChannels,
-      group,
-    );
-    if (channels.isEmpty) {
-      return const SizedBox.shrink();
+    if (!state.hasChannels) {
+      return const _EmptyLiveTvState(
+        title: 'No Live TV sources yet',
+        summary:
+            'Configure and import a provider before channels and guide data can appear here.',
+      );
     }
-
-    final int clampedFocusedIndex = focusedChannelIndex.clamp(
-      0,
-      channels.length - 1,
-    );
-    final int clampedPlayingIndex = playingChannelIndex.clamp(
-      0,
-      channels.length - 1,
-    );
-    final ChannelEntry selectedChannel = channels[clampedFocusedIndex];
-    final ChannelEntry playingChannel = channels[clampedPlayingIndex];
-    final LiveTvChannelDetail? selectedDetail = _detailForChannel(
-      content.liveTvBrowse.channelDetails,
-      selectedChannel.number,
-    );
-    final LiveTvGuideContent guideContent = _guideForChannels(
-      content.liveTvGuide,
-      channels,
-    );
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,28 +97,28 @@ class _ChannelsView extends StatelessWidget {
                   const _SectionHeader(
                     title: 'Channels',
                     subtitle:
-                        'Channel browse stays on the left. Explicit actions live in the selected detail lane.',
+                        'Channel browse stays on the left. Explicit tune happens only in the selected detail lane.',
                   ),
                   const SizedBox(height: CrispyOverhaulTokens.large),
                   _ChannelListHeader(
-                    totalCount: channels.length,
-                    groupLabel: group.label,
+                    totalCount: state.channels.length,
+                    groupLabel: state.group.title,
                   ),
                   const SizedBox(height: CrispyOverhaulTokens.medium),
                   Expanded(
                     child: ListView.separated(
-                      itemCount: channels.length,
+                      itemCount: state.channels.length,
                       separatorBuilder:
                           (BuildContext context, int index) => const SizedBox(
                             height: CrispyOverhaulTokens.small,
                           ),
                       itemBuilder:
                           (BuildContext context, int index) => _ChannelRow(
-                            entry: channels[index],
-                            selected: index == clampedFocusedIndex,
-                            playing: index == clampedPlayingIndex,
+                            entry: state.channels[index],
+                            selected: index == state.playerSession.activeIndex,
+                            playing: index == state.playingChannelIndex,
                             itemKey: Key(
-                              'live-tv-channel-${channels[index].number}',
+                              'live-tv-channel-${state.channels[index].number}',
                             ),
                             onTap: () => onSelectChannel(index),
                           ),
@@ -170,12 +141,16 @@ class _ChannelsView extends StatelessWidget {
                   padding: const EdgeInsets.all(CrispyOverhaulTokens.medium),
                   child: _GroupRail(
                     title: 'Browse groups',
-                    values: availableGroups,
-                    selected: group,
-                    labelBuilder: (LiveTvGroup value) => value.label,
+                    values: state.availableGroups,
+                    selected: state.group,
+                    labelBuilder:
+                        (LiveTvRuntimeGroupSnapshot value) => value.title,
                     keyBuilder:
-                        (LiveTvGroup value) => 'live-tv-group-${value.name}',
-                    onSelect: onSelectGroup,
+                        (LiveTvRuntimeGroupSnapshot value) =>
+                            'live-tv-group-${value.id}',
+                    onSelect:
+                        (LiveTvRuntimeGroupSnapshot value) =>
+                            onSelectGroup(value.id),
                     axis: Axis.horizontal,
                   ),
                 ),
@@ -187,22 +162,15 @@ class _ChannelsView extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(CrispyOverhaulTokens.section),
                     child: _ChannelDetailPane(
-                      selectedChannel: selectedChannel,
-                      selectedDetail: selectedDetail,
-                      group: group,
-                      playingChannel: playingChannel,
-                      guide: guideContent,
+                      browse: state.browse,
+                      selectedChannel: state.selectedChannel,
+                      selectedDetail: state.selectedDetail,
+                      groupLabel: state.group.title,
+                      playingChannel: state.playingChannel,
+                      guide: state.guide,
                       onActivateChannel: () {
                         onActivateChannel();
-                        onLaunchPlayer(
-                          _buildLivePlayerSession(
-                            channels: channels,
-                            selectedIndex: clampedFocusedIndex,
-                            group: group,
-                            guide: guideContent,
-                            details: content.liveTvBrowse.channelDetails,
-                          ),
-                        );
+                        onLaunchPlayer(state.playerSession);
                       },
                     ),
                   ),
@@ -212,8 +180,8 @@ class _ChannelsView extends StatelessWidget {
               SizedBox(
                 height: 214,
                 child: _GuideSnapshotPanel(
-                  guide: guideContent,
-                  selectedChannelNumber: selectedChannel.number,
+                  guide: state.guide,
+                  selectedChannelNumber: state.selectedChannel.number,
                 ),
               ),
             ],
@@ -225,35 +193,21 @@ class _ChannelsView extends StatelessWidget {
 }
 
 class _GuideView extends StatelessWidget {
-  const _GuideView({
-    required this.content,
-    required this.availableGroups,
-    required this.group,
-    required this.focusedChannelIndex,
-    required this.onSelectGroup,
-  });
+  const _GuideView({required this.state, required this.onSelectGroup});
 
-  final ShellContentSnapshot content;
-  final List<LiveTvGroup> availableGroups;
-  final LiveTvGroup group;
-  final int focusedChannelIndex;
-  final ValueChanged<LiveTvGroup> onSelectGroup;
+  final LiveTvPresentationState state;
+  final ValueChanged<String> onSelectGroup;
 
   @override
   Widget build(BuildContext context) {
-    final List<ChannelEntry> channels = _channelsForGroup(
-      content.liveTvChannels,
-      group,
-    );
-    if (channels.isEmpty) {
-      return const SizedBox.shrink();
+    if (!state.hasChannels) {
+      return const _EmptyLiveTvState(
+        title: 'Guide unavailable',
+        summary:
+            'Guide view appears after a source imports channels and EPG data.',
+      );
     }
-    final ChannelEntry selectedChannel =
-        channels[focusedChannelIndex.clamp(0, channels.length - 1)];
-    final LiveTvGuideContent guideContent = _guideForChannels(
-      content.liveTvGuide,
-      channels,
-    );
+    final ChannelEntry selectedChannel = state.selectedChannel;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,12 +230,16 @@ class _GuideView extends StatelessWidget {
                     const SizedBox(height: CrispyOverhaulTokens.medium),
                     _GroupRail(
                       title: 'Browse groups',
-                      values: availableGroups,
-                      selected: group,
-                      labelBuilder: (LiveTvGroup value) => value.label,
+                      values: state.availableGroups,
+                      selected: state.group,
+                      labelBuilder:
+                          (LiveTvRuntimeGroupSnapshot value) => value.title,
                       keyBuilder:
-                          (LiveTvGroup value) => 'live-tv-group-${value.name}',
-                      onSelect: onSelectGroup,
+                          (LiveTvRuntimeGroupSnapshot value) =>
+                              'live-tv-group-${value.id}',
+                      onSelect:
+                          (LiveTvRuntimeGroupSnapshot value) =>
+                              onSelectGroup(value.id),
                     ),
                     const SizedBox(height: CrispyOverhaulTokens.large),
                     _InfoBadge(
@@ -292,7 +250,7 @@ class _GuideView extends StatelessWidget {
                     const SizedBox(height: CrispyOverhaulTokens.small),
                     _InfoBadge(
                       label: 'Focused slot',
-                      value: guideContent.focusedSlot,
+                      value: state.guide.focusedSlot,
                     ),
                   ],
                 ),
@@ -312,7 +270,7 @@ class _GuideView extends StatelessWidget {
                     padding: const EdgeInsets.all(CrispyOverhaulTokens.section),
                     child: _GuidePreviewPane(
                       selectedChannel: selectedChannel,
-                      guide: guideContent,
+                      guide: state.guide,
                     ),
                   ),
                 ),
@@ -325,7 +283,7 @@ class _GuideView extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(CrispyOverhaulTokens.large),
                     child: _GuideMatrix(
-                      guide: guideContent,
+                      guide: state.guide,
                       selectedChannelNumber: selectedChannel.number,
                     ),
                   ),
@@ -335,6 +293,36 @@ class _GuideView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _EmptyLiveTvState extends StatelessWidget {
+  const _EmptyLiveTvState({required this.title, required this.summary});
+
+  final String title;
+  final String summary;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: CrispyShellRoles.panelDecoration(),
+      child: Padding(
+        padding: const EdgeInsets.all(CrispyOverhaulTokens.section),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(title, style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: CrispyOverhaulTokens.small),
+            Text(
+              summary,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: CrispyOverhaulTokens.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -469,7 +457,8 @@ class _GroupRailItem<T> extends StatelessWidget {
       controlRole: ShellControlRole.selector,
       presentation: ShellControlPresentation.textOnly,
       selected: selected,
-      contentAlignment: compact ? Alignment.center : AlignmentDirectional.centerStart,
+      contentAlignment:
+          compact ? Alignment.center : AlignmentDirectional.centerStart,
       expandLabelRow: !compact,
     );
   }
@@ -653,17 +642,19 @@ class _ChannelRow extends StatelessWidget {
 
 class _ChannelDetailPane extends StatelessWidget {
   const _ChannelDetailPane({
+    required this.browse,
     required this.selectedChannel,
     required this.selectedDetail,
-    required this.group,
+    required this.groupLabel,
     required this.playingChannel,
     required this.guide,
     required this.onActivateChannel,
   });
 
+  final LiveTvBrowseContent browse;
   final ChannelEntry selectedChannel;
   final LiveTvChannelDetail? selectedDetail;
-  final LiveTvGroup group;
+  final String groupLabel;
   final ChannelEntry playingChannel;
   final LiveTvGuideContent guide;
   final VoidCallback onActivateChannel;
@@ -685,20 +676,23 @@ class _ChannelDetailPane extends StatelessWidget {
     final String archiveHint = selectedDetail?.archiveHint ?? 'Preview only';
     final String brandLabel = selectedDetail?.brand ?? selectedChannel.name;
     final List<String> metadataBadges =
-        selectedDetail?.metadataBadges ?? <String>[group.label];
+        selectedDetail?.metadataBadges ?? <String>[groupLabel];
     final bool selectedIsPlaying =
         selectedChannel.number == playingChannel.number;
     final String playingNowLabel = 'Playing ${playingChannel.number}';
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final double badgeGap = CrispyOverhaulTokens.small;
-        final double paneWidth = constraints.maxWidth.isFinite
-            ? constraints.maxWidth
-            : 720;
-        final double topBadgeWidth = ((paneWidth - (badgeGap * 2)) / 3)
-            .clamp(136, 220);
-        final double slotWidth = ((paneWidth - (badgeGap * 3)) / 4)
-            .clamp(104, 156);
+        final double paneWidth =
+            constraints.maxWidth.isFinite ? constraints.maxWidth : 720;
+        final double topBadgeWidth = ((paneWidth - (badgeGap * 2)) / 3).clamp(
+          136,
+          220,
+        );
+        final double slotWidth = ((paneWidth - (badgeGap * 3)) / 4).clamp(
+          104,
+          156,
+        );
         return SingleChildScrollView(
           child: ConstrainedBox(
             constraints: BoxConstraints(minWidth: paneWidth),
@@ -714,7 +708,8 @@ class _ChannelDetailPane extends StatelessWidget {
                       width: topBadgeWidth,
                       child: _InfoBadge(
                         label: selectedIsPlaying ? 'Playing now' : 'Playback',
-                        value: selectedIsPlaying ? 'Active tune' : 'Preview only',
+                        value:
+                            selectedIsPlaying ? 'Active tune' : 'Preview only',
                         maxValueLines: 1,
                       ),
                     ),
@@ -722,7 +717,7 @@ class _ChannelDetailPane extends StatelessWidget {
                       width: topBadgeWidth,
                       child: _InfoBadge(
                         label: 'Group',
-                        value: group.label,
+                        value: groupLabel,
                         maxValueLines: 1,
                       ),
                     ),
@@ -747,12 +742,21 @@ class _ChannelDetailPane extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
                         Text(
-                          'Selected channel detail',
+                          browse.summaryTitle,
                           style: textTheme.titleLarge?.copyWith(
                             color: CrispyOverhaulTokens.textPrimary,
                           ),
                         ),
                         const SizedBox(height: CrispyOverhaulTokens.compact),
+                        Text(
+                          browse.summaryBody,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyLarge?.copyWith(
+                            color: CrispyOverhaulTokens.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: CrispyOverhaulTokens.small),
                         Text(
                           brandLabel,
                           style: textTheme.bodyLarge?.copyWith(
@@ -774,9 +778,17 @@ class _ChannelDetailPane extends StatelessWidget {
                             const _LiveTvActionSurface(label: 'More info'),
                           ],
                         ),
+                        const SizedBox(height: CrispyOverhaulTokens.small),
+                        Text(
+                          browse.quickPlayHint,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: CrispyOverhaulTokens.textSecondary,
+                          ),
+                        ),
                         const SizedBox(height: CrispyOverhaulTokens.medium),
                         DecoratedBox(
-                          decoration: CrispyShellRoles.heroArtworkScrimDecoration(),
+                          decoration:
+                              CrispyShellRoles.heroArtworkScrimDecoration(),
                           child: Padding(
                             padding: const EdgeInsets.all(
                               CrispyOverhaulTokens.medium,
@@ -793,7 +805,9 @@ class _ChannelDetailPane extends StatelessWidget {
                                     color: CrispyOverhaulTokens.textPrimary,
                                   ),
                                 ),
-                                const SizedBox(height: CrispyOverhaulTokens.compact),
+                                const SizedBox(
+                                  height: CrispyOverhaulTokens.compact,
+                                ),
                                 Text(
                                   nowLabel,
                                   maxLines: 1,
@@ -802,7 +816,9 @@ class _ChannelDetailPane extends StatelessWidget {
                                     color: CrispyOverhaulTokens.textSecondary,
                                   ),
                                 ),
-                                const SizedBox(height: CrispyOverhaulTokens.compact),
+                                const SizedBox(
+                                  height: CrispyOverhaulTokens.compact,
+                                ),
                                 Text(
                                   summary,
                                   maxLines: 3,
@@ -811,7 +827,9 @@ class _ChannelDetailPane extends StatelessWidget {
                                     color: CrispyOverhaulTokens.textSecondary,
                                   ),
                                 ),
-                                const SizedBox(height: CrispyOverhaulTokens.compact),
+                                const SizedBox(
+                                  height: CrispyOverhaulTokens.compact,
+                                ),
                                 Text(
                                   archiveHint,
                                   maxLines: 2,
@@ -820,7 +838,9 @@ class _ChannelDetailPane extends StatelessWidget {
                                     color: CrispyOverhaulTokens.textSecondary,
                                   ),
                                 ),
-                                const SizedBox(height: CrispyOverhaulTokens.medium),
+                                const SizedBox(
+                                  height: CrispyOverhaulTokens.medium,
+                                ),
                                 Wrap(
                                   spacing: CrispyOverhaulTokens.small,
                                   runSpacing: CrispyOverhaulTokens.small,
@@ -834,7 +854,9 @@ class _ChannelDetailPane extends StatelessWidget {
                                       )
                                       .toList(growable: false),
                                 ),
-                                const SizedBox(height: CrispyOverhaulTokens.medium),
+                                const SizedBox(
+                                  height: CrispyOverhaulTokens.medium,
+                                ),
                                 Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: <Widget>[
@@ -845,7 +867,9 @@ class _ChannelDetailPane extends StatelessWidget {
                                         maxValueLines: 2,
                                       ),
                                     ),
-                                    const SizedBox(width: CrispyOverhaulTokens.small),
+                                    const SizedBox(
+                                      width: CrispyOverhaulTokens.small,
+                                    ),
                                     Expanded(
                                       child: _InfoBadge(
                                         label: 'Up next',
@@ -855,7 +879,9 @@ class _ChannelDetailPane extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: CrispyOverhaulTokens.small),
+                                const SizedBox(
+                                  height: CrispyOverhaulTokens.small,
+                                ),
                                 Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: <Widget>[
@@ -863,18 +889,22 @@ class _ChannelDetailPane extends StatelessWidget {
                                       child: _InfoBadge(
                                         label: 'Catch-up',
                                         value:
-                                            selectedDetail?.supportsCatchup ?? false
+                                            selectedDetail?.supportsCatchup ??
+                                                    false
                                                 ? 'Available'
                                                 : 'Unavailable',
                                         maxValueLines: 1,
                                       ),
                                     ),
-                                    const SizedBox(width: CrispyOverhaulTokens.small),
+                                    const SizedBox(
+                                      width: CrispyOverhaulTokens.small,
+                                    ),
                                     Expanded(
                                       child: _InfoBadge(
                                         label: 'Archive',
                                         value:
-                                            selectedDetail?.supportsArchive ?? false
+                                            selectedDetail?.supportsArchive ??
+                                                    false
                                                 ? 'Available'
                                                 : 'Unavailable',
                                         maxValueLines: 1,
@@ -993,71 +1023,6 @@ class _LiveTvActionSurface extends StatelessWidget {
   }
 }
 
-PlayerSession _buildLivePlayerSession({
-  required List<ChannelEntry> channels,
-  required int selectedIndex,
-  required LiveTvGroup group,
-  required LiveTvGuideContent guide,
-  required List<LiveTvChannelDetail> details,
-}) {
-  final List<PlayerQueueItem> queue = channels.map((ChannelEntry channel) {
-    final LiveTvChannelDetail? detail = _detailForChannel(details, channel.number);
-    return PlayerQueueItem(
-      eyebrow: 'Live TV · ${channel.number}',
-      title: detail?.title ?? channel.program,
-      subtitle: '${channel.name} · ${channel.timeRange}',
-      summary: detail?.summary ?? 'Live playback keeps transport visible only when needed.',
-      progressLabel: detail?.nowLabel ?? 'Live edge · ${channel.program}',
-      progressValue: 0.96,
-      badges: detail?.metadataBadges ?? <String>[group.label],
-      detailLines: <String>[
-        detail?.nextLabel ?? 'Next program pending',
-        detail?.archiveHint ?? 'Live edge only',
-        'Channel switching stays inside player.',
-      ],
-    );
-  }).toList(growable: false);
-  return PlayerSession(
-    kind: PlayerContentKind.live,
-    originLabel: 'Live TV · ${group.label}',
-    queueLabel: 'Channels',
-    queue: queue,
-    activeIndex: selectedIndex,
-    primaryActionLabel: 'Go Live',
-    secondaryActionLabel: 'Restart',
-    chooserGroups: const <PlayerChooserGroup>[
-      PlayerChooserGroup(
-        kind: PlayerChooserKind.audio,
-        title: 'Audio',
-        options: <String>['Main mix', 'Commentary'],
-        selectedIndex: 0,
-      ),
-      PlayerChooserGroup(
-        kind: PlayerChooserKind.subtitles,
-        title: 'Subtitles',
-        options: <String>['Off', 'CC'],
-        selectedIndex: 0,
-      ),
-      PlayerChooserGroup(
-        kind: PlayerChooserKind.quality,
-        title: 'Quality',
-        options: <String>['Auto', '1080p', '720p'],
-        selectedIndex: 0,
-      ),
-      PlayerChooserGroup(
-        kind: PlayerChooserKind.source,
-        title: 'Source',
-        options: <String>['Preferred source', 'Archive source'],
-        selectedIndex: 0,
-      ),
-    ],
-    statsLines: <String>[
-      'Focused guide slot: ${guide.focusedSlot}',
-      'Switch path: next/previous channel without exit',
-    ],
-  );
-}
-
 class _GuidePreviewPane extends StatelessWidget {
   const _GuidePreviewPane({required this.selectedChannel, required this.guide});
 
@@ -1112,9 +1077,17 @@ class _ExpandedGuidePreviewPane extends StatelessWidget {
           children: <Widget>[
             Row(
               children: <Widget>[
-                _InfoBadge(label: 'Guide time', value: guide.focusedSlot, maxValueLines: 1),
+                _InfoBadge(
+                  label: 'Guide time',
+                  value: guide.focusedSlot,
+                  maxValueLines: 1,
+                ),
                 const SizedBox(width: CrispyOverhaulTokens.small),
-                _InfoBadge(label: 'Channel', value: selectedChannel.number, maxValueLines: 1),
+                _InfoBadge(
+                  label: 'Channel',
+                  value: selectedChannel.number,
+                  maxValueLines: 1,
+                ),
                 const SizedBox(width: CrispyOverhaulTokens.small),
                 _InfoBadge(
                   key: const Key('live-tv-guide-live-edge-label'),
@@ -1124,7 +1097,7 @@ class _ExpandedGuidePreviewPane extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  'Guide focus never starts playback',
+                  guide.summaryBody,
                   style: textTheme.bodySmall?.copyWith(
                     color: CrispyOverhaulTokens.textSecondary,
                   ),
@@ -1142,7 +1115,7 @@ class _ExpandedGuidePreviewPane extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: <Widget>[
                       Text(
-                        'Focused guide detail',
+                        guide.summaryTitle,
                         style: textTheme.titleLarge?.copyWith(
                           color: CrispyOverhaulTokens.textPrimary,
                         ),
@@ -1228,13 +1201,21 @@ class _CompactGuidePreviewPane extends StatelessWidget {
         padding: const EdgeInsets.all(CrispyOverhaulTokens.medium),
         child: LayoutBuilder(
           builder: (BuildContext context, BoxConstraints constraints) {
-            final double badgeWidth = ((constraints.maxWidth -
-                        (CrispyOverhaulTokens.small * 2)) /
-                    3)
-                .clamp(96, 180);
+            final double badgeWidth =
+                ((constraints.maxWidth - (CrispyOverhaulTokens.small * 2)) / 3)
+                    .clamp(96, 180);
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+                Text(
+                  guide.summaryTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.titleMedium?.copyWith(
+                    color: CrispyOverhaulTokens.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: CrispyOverhaulTokens.small),
                 Wrap(
                   spacing: CrispyOverhaulTokens.small,
                   runSpacing: CrispyOverhaulTokens.small,
@@ -1321,9 +1302,12 @@ class _GuideMatrix extends StatelessWidget {
               vertical: CrispyOverhaulTokens.compact,
             )
             : const EdgeInsets.all(CrispyOverhaulTokens.small);
-    final TextStyle? cellStyle = compact
-        ? textTheme.bodySmall?.copyWith(color: CrispyOverhaulTokens.textSecondary)
-        : textTheme.bodyMedium;
+    final TextStyle? cellStyle =
+        compact
+            ? textTheme.bodySmall?.copyWith(
+              color: CrispyOverhaulTokens.textSecondary,
+            )
+            : textTheme.bodyMedium;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1427,60 +1411,6 @@ class _GuideMatrix extends StatelessWidget {
       ],
     );
   }
-}
-
-List<ChannelEntry> _channelsForGroup(
-  List<ChannelEntry> channels,
-  LiveTvGroup group,
-) {
-  switch (group) {
-    case LiveTvGroup.allChannels:
-      return channels;
-    case LiveTvGroup.favorites:
-      return channels.take(2).toList(growable: false);
-    case LiveTvGroup.news:
-      return <ChannelEntry>[channels[0]];
-    case LiveTvGroup.sports:
-      return <ChannelEntry>[channels[1]];
-    case LiveTvGroup.movies:
-      return <ChannelEntry>[channels[2]];
-    case LiveTvGroup.kids:
-      return <ChannelEntry>[channels[3]];
-  }
-}
-
-LiveTvChannelDetail? _detailForChannel(
-  List<LiveTvChannelDetail> details,
-  String channelNumber,
-) {
-  for (final LiveTvChannelDetail detail in details) {
-    if (detail.number == channelNumber) {
-      return detail;
-    }
-  }
-  return null;
-}
-
-LiveTvGuideContent _guideForChannels(
-  LiveTvGuideContent guide,
-  List<ChannelEntry> channels,
-) {
-  final Set<String> allowedNumbers =
-      channels.map((ChannelEntry channel) => channel.number).toSet();
-  final List<LiveTvGuideRowDetail> rows = guide.rows
-      .where(
-        (LiveTvGuideRowDetail row) =>
-            allowedNumbers.contains(row.channelNumber),
-      )
-      .toList(growable: false);
-  return LiveTvGuideContent(
-    summaryTitle: guide.summaryTitle,
-    summaryBody: guide.summaryBody,
-    timeSlots: guide.timeSlots,
-    selectedChannelNumber: guide.selectedChannelNumber,
-    focusedSlot: guide.focusedSlot,
-    rows: rows,
-  );
 }
 
 LiveTvGuideRowDetail? _guideRowForChannel(

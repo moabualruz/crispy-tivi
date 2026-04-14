@@ -35,6 +35,14 @@ final class HeroFeature {
   final String primaryAction;
   final String secondaryAction;
   final ArtworkSource? artwork;
+
+  static const HeroFeature empty = HeroFeature(
+    kicker: '',
+    title: '',
+    summary: '',
+    primaryAction: '',
+    secondaryAction: '',
+  );
 }
 
 final class SeriesDetailContent {
@@ -49,6 +57,13 @@ final class SeriesDetailContent {
   final String summaryBody;
   final String handoffLabel;
   final List<SeriesSeasonDetail> seasons;
+
+  static const SeriesDetailContent empty = SeriesDetailContent(
+    summaryTitle: '',
+    summaryBody: '',
+    handoffLabel: '',
+    seasons: <SeriesSeasonDetail>[],
+  );
 }
 
 final class SeriesSeasonDetail {

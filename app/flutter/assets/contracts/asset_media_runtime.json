@@ -1,0 +1,1223 @@
+{
+  "title": "CrispyTivi Media Runtime",
+  "version": "1",
+  "active_panel": "Movies",
+  "active_scope": "Featured",
+  "movie_hero": {
+    "kicker": "Featured film",
+    "title": "The Last Harbor",
+    "summary": "A cinematic detail state with clear action hierarchy, restrained metadata, and content-first framing.",
+    "primary_action": "Play trailer",
+    "secondary_action": "Add to watchlist",
+    "artwork": {
+      "kind": "asset",
+      "value": "assets/mocks/media-movie-hero-shell.jpg"
+    }
+  },
+  "series_hero": {
+    "kicker": "Series spotlight",
+    "title": "Shadow Signals",
+    "summary": "Season-driven browsing stays inside the media domain with episode context and tight focus separation.",
+    "primary_action": "Resume S1:E6",
+    "secondary_action": "Browse episodes",
+    "artwork": {
+      "kind": "asset",
+      "value": "assets/mocks/media-series-hero-shell.jpg"
+    }
+  },
+  "movie_collections": [
+    {
+      "title": "Featured Films",
+      "summary": "Featured runtime films.",
+      "items": [
+        {
+          "title": "The Last Harbor",
+          "caption": "Thriller",
+          "rank": 1,
+          "playback_source": {
+            "kind": "movie",
+            "source_key": "media_library",
+            "content_key": "the-last-harbor",
+            "source_label": "Media Library",
+            "handoff_label": "Play movie"
+          },
+          "playback_stream": {
+            "uri": "https://stream.crispy-tivi.test/media/the-last-harbor.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 0,
+            "source_options": [
+              {
+                "id": "primary",
+                "label": "Primary source",
+                "uri": "https://stream.crispy-tivi.test/media/the-last-harbor.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              },
+              {
+                "id": "mirror",
+                "label": "Mirror source",
+                "uri": "https://stream.crispy-tivi.test/media/the-last-harbor-mirror.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              }
+            ],
+            "quality_options": [
+              {
+                "id": "auto",
+                "label": "Auto",
+                "uri": "https://stream.crispy-tivi.test/media/the-last-harbor.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              },
+              {
+                "id": "1080p",
+                "label": "1080p",
+                "uri": "https://stream.crispy-tivi.test/media/the-last-harbor-1080.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              },
+              {
+                "id": "720p",
+                "label": "720p",
+                "uri": "https://stream.crispy-tivi.test/media/the-last-harbor-720.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              }
+            ],
+            "audio_options": [
+              {
+                "id": "auto",
+                "label": "Main mix",
+                "uri": "https://stream.crispy-tivi.test/media/the-last-harbor/audio-main.aac",
+                "language": "en"
+              },
+              {
+                "id": "commentary",
+                "label": "Commentary",
+                "uri": "https://stream.crispy-tivi.test/media/the-last-harbor/audio-commentary.aac",
+                "language": "en"
+              }
+            ],
+            "subtitle_options": [
+              {
+                "id": "off",
+                "label": "Off",
+                "uri": ""
+              },
+              {
+                "id": "en-cc",
+                "label": "English CC",
+                "uri": "https://stream.crispy-tivi.test/media/the-last-harbor/subtitles-en.vtt",
+                "language": "en"
+              },
+              {
+                "id": "de",
+                "label": "Deutsch",
+                "uri": "https://stream.crispy-tivi.test/media/the-last-harbor/subtitles-de.vtt",
+                "language": "de"
+              }
+            ]
+          },
+          "artwork": {
+            "kind": "asset",
+            "value": "assets/mocks/poster-shell-1.jpg"
+          }
+        },
+        {
+          "title": "Atlas Run",
+          "caption": "Action",
+          "rank": 2,
+          "playback_source": {
+            "kind": "movie",
+            "source_key": "media_library",
+            "content_key": "atlas-run",
+            "source_label": "Media Library",
+            "handoff_label": "Play movie"
+          },
+          "playback_stream": {
+            "uri": "https://stream.crispy-tivi.test/media/atlas-run.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 0,
+            "source_options": [
+              {
+                "id": "primary",
+                "label": "Primary source",
+                "uri": "https://stream.crispy-tivi.test/media/atlas-run.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              },
+              {
+                "id": "mirror",
+                "label": "Mirror source",
+                "uri": "https://stream.crispy-tivi.test/media/atlas-run-mirror.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              }
+            ],
+            "quality_options": [
+              {
+                "id": "auto",
+                "label": "Auto",
+                "uri": "https://stream.crispy-tivi.test/media/atlas-run.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              },
+              {
+                "id": "1080p",
+                "label": "1080p",
+                "uri": "https://stream.crispy-tivi.test/media/atlas-run-1080.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              },
+              {
+                "id": "720p",
+                "label": "720p",
+                "uri": "https://stream.crispy-tivi.test/media/atlas-run-720.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              }
+            ],
+            "audio_options": [
+              {
+                "id": "auto",
+                "label": "Main mix",
+                "uri": "https://stream.crispy-tivi.test/media/atlas-run/audio-main.aac",
+                "language": "en"
+              },
+              {
+                "id": "commentary",
+                "label": "Commentary",
+                "uri": "https://stream.crispy-tivi.test/media/atlas-run/audio-commentary.aac",
+                "language": "en"
+              }
+            ],
+            "subtitle_options": [
+              {
+                "id": "off",
+                "label": "Off",
+                "uri": ""
+              },
+              {
+                "id": "en-cc",
+                "label": "English CC",
+                "uri": "https://stream.crispy-tivi.test/media/atlas-run/subtitles-en.vtt",
+                "language": "en"
+              },
+              {
+                "id": "de",
+                "label": "Deutsch",
+                "uri": "https://stream.crispy-tivi.test/media/atlas-run/subtitles-de.vtt",
+                "language": "de"
+              }
+            ]
+          },
+          "artwork": {
+            "kind": "asset",
+            "value": "assets/mocks/poster-shell-3.jpg"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Continue Watching Films",
+      "summary": "Resume-ready film items.",
+      "items": [
+        {
+          "title": "Neon District",
+          "caption": "42 min left",
+          "playback_source": {
+            "kind": "movie",
+            "source_key": "media_library",
+            "content_key": "neon-district",
+            "source_label": "Media Library",
+            "handoff_label": "Resume movie"
+          },
+          "playback_stream": {
+            "uri": "https://stream.crispy-tivi.test/media/neon-district.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 2520,
+            "source_options": [
+              {
+                "id": "primary",
+                "label": "Primary source",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 2520
+              },
+              {
+                "id": "mirror",
+                "label": "Mirror source",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district-mirror.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 2520
+              }
+            ],
+            "quality_options": [
+              {
+                "id": "auto",
+                "label": "Auto",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 2520
+              },
+              {
+                "id": "1080p",
+                "label": "1080p",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district-1080.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 2520
+              },
+              {
+                "id": "720p",
+                "label": "720p",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district-720.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 2520
+              }
+            ],
+            "audio_options": [
+              {
+                "id": "auto",
+                "label": "Main mix",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district/audio-main.aac",
+                "language": "en"
+              },
+              {
+                "id": "commentary",
+                "label": "Commentary",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district/audio-commentary.aac",
+                "language": "en"
+              }
+            ],
+            "subtitle_options": [
+              {
+                "id": "off",
+                "label": "Off",
+                "uri": ""
+              },
+              {
+                "id": "en-cc",
+                "label": "English CC",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district/subtitles-en.vtt",
+                "language": "en"
+              },
+              {
+                "id": "de",
+                "label": "Deutsch",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district/subtitles-de.vtt",
+                "language": "de"
+              }
+            ]
+          },
+          "artwork": {
+            "kind": "asset",
+            "value": "assets/mocks/poster-shell-1.jpg"
+          }
+        },
+        {
+          "title": "Chef After Dark",
+          "caption": "Resume S2:E4",
+          "playback_source": {
+            "kind": "movie",
+            "source_key": "media_library",
+            "content_key": "chef-after-dark",
+            "source_label": "Media Library",
+            "handoff_label": "Resume movie"
+          },
+          "playback_stream": {
+            "uri": "https://stream.crispy-tivi.test/media/chef-after-dark.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 3480,
+            "source_options": [
+              {
+                "id": "primary",
+                "label": "Primary source",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 3480
+              },
+              {
+                "id": "mirror",
+                "label": "Mirror source",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark-mirror.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 3480
+              }
+            ],
+            "quality_options": [
+              {
+                "id": "auto",
+                "label": "Auto",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 3480
+              },
+              {
+                "id": "1080p",
+                "label": "1080p",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark-1080.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 3480
+              },
+              {
+                "id": "720p",
+                "label": "720p",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark-720.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 3480
+              }
+            ],
+            "audio_options": [
+              {
+                "id": "auto",
+                "label": "Main mix",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark/audio-main.aac",
+                "language": "en"
+              },
+              {
+                "id": "commentary",
+                "label": "Commentary",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark/audio-commentary.aac",
+                "language": "en"
+              }
+            ],
+            "subtitle_options": [
+              {
+                "id": "off",
+                "label": "Off",
+                "uri": ""
+              },
+              {
+                "id": "en-cc",
+                "label": "English CC",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark/subtitles-en.vtt",
+                "language": "en"
+              },
+              {
+                "id": "de",
+                "label": "Deutsch",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark/subtitles-de.vtt",
+                "language": "de"
+              }
+            ]
+          },
+          "artwork": {
+            "kind": "asset",
+            "value": "assets/mocks/poster-shell-2.jpg"
+          }
+        }
+      ]
+    }
+  ],
+  "series_collections": [
+    {
+      "title": "Featured Series",
+      "summary": "Featured runtime series.",
+      "items": [
+        {
+          "title": "Shadow Signals",
+          "caption": "New episode",
+          "rank": 1,
+          "playback_source": {
+            "kind": "series",
+            "source_key": "media_library",
+            "content_key": "shadow-signals",
+            "source_label": "Media Library",
+            "handoff_label": "Browse series"
+          },
+          "playback_stream": {
+            "uri": "https://stream.crispy-tivi.test/media/shadow-signals.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 0,
+            "source_options": [
+              {
+                "id": "primary",
+                "label": "Primary source",
+                "uri": "https://stream.crispy-tivi.test/media/shadow-signals.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              },
+              {
+                "id": "mirror",
+                "label": "Mirror source",
+                "uri": "https://stream.crispy-tivi.test/media/shadow-signals-mirror.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              }
+            ],
+            "quality_options": [
+              {
+                "id": "auto",
+                "label": "Auto",
+                "uri": "https://stream.crispy-tivi.test/media/shadow-signals.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              },
+              {
+                "id": "1080p",
+                "label": "1080p",
+                "uri": "https://stream.crispy-tivi.test/media/shadow-signals-1080.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              },
+              {
+                "id": "720p",
+                "label": "720p",
+                "uri": "https://stream.crispy-tivi.test/media/shadow-signals-720.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              }
+            ],
+            "audio_options": [
+              {
+                "id": "auto",
+                "label": "Main mix",
+                "uri": "https://stream.crispy-tivi.test/media/shadow-signals/audio-main.aac",
+                "language": "en"
+              },
+              {
+                "id": "commentary",
+                "label": "Commentary",
+                "uri": "https://stream.crispy-tivi.test/media/shadow-signals/audio-commentary.aac",
+                "language": "en"
+              }
+            ],
+            "subtitle_options": [
+              {
+                "id": "off",
+                "label": "Off",
+                "uri": ""
+              },
+              {
+                "id": "en-cc",
+                "label": "English CC",
+                "uri": "https://stream.crispy-tivi.test/media/shadow-signals/subtitles-en.vtt",
+                "language": "en"
+              },
+              {
+                "id": "de",
+                "label": "Deutsch",
+                "uri": "https://stream.crispy-tivi.test/media/shadow-signals/subtitles-de.vtt",
+                "language": "de"
+              }
+            ]
+          },
+          "artwork": {
+            "kind": "asset",
+            "value": "assets/mocks/poster-shell-5.jpg"
+          }
+        },
+        {
+          "title": "Northline",
+          "caption": "New season",
+          "rank": 2,
+          "playback_source": {
+            "kind": "series",
+            "source_key": "media_library",
+            "content_key": "northline",
+            "source_label": "Media Library",
+            "handoff_label": "Browse series"
+          },
+          "playback_stream": {
+            "uri": "https://stream.crispy-tivi.test/media/northline.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 0,
+            "source_options": [
+              {
+                "id": "primary",
+                "label": "Primary source",
+                "uri": "https://stream.crispy-tivi.test/media/northline.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              },
+              {
+                "id": "mirror",
+                "label": "Mirror source",
+                "uri": "https://stream.crispy-tivi.test/media/northline-mirror.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              }
+            ],
+            "quality_options": [
+              {
+                "id": "auto",
+                "label": "Auto",
+                "uri": "https://stream.crispy-tivi.test/media/northline.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              },
+              {
+                "id": "1080p",
+                "label": "1080p",
+                "uri": "https://stream.crispy-tivi.test/media/northline-1080.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              },
+              {
+                "id": "720p",
+                "label": "720p",
+                "uri": "https://stream.crispy-tivi.test/media/northline-720.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 0
+              }
+            ],
+            "audio_options": [
+              {
+                "id": "auto",
+                "label": "Main mix",
+                "uri": "https://stream.crispy-tivi.test/media/northline/audio-main.aac",
+                "language": "en"
+              },
+              {
+                "id": "commentary",
+                "label": "Commentary",
+                "uri": "https://stream.crispy-tivi.test/media/northline/audio-commentary.aac",
+                "language": "en"
+              }
+            ],
+            "subtitle_options": [
+              {
+                "id": "off",
+                "label": "Off",
+                "uri": ""
+              },
+              {
+                "id": "en-cc",
+                "label": "English CC",
+                "uri": "https://stream.crispy-tivi.test/media/northline/subtitles-en.vtt",
+                "language": "en"
+              },
+              {
+                "id": "de",
+                "label": "Deutsch",
+                "uri": "https://stream.crispy-tivi.test/media/northline/subtitles-de.vtt",
+                "language": "de"
+              }
+            ]
+          },
+          "artwork": {
+            "kind": "asset",
+            "value": "assets/mocks/poster-shell-4.jpg"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Continue Watching Series",
+      "summary": "Resume-ready series items.",
+      "items": [
+        {
+          "title": "Neon District",
+          "caption": "42 min left",
+          "playback_source": {
+            "kind": "series",
+            "source_key": "media_library",
+            "content_key": "neon-district",
+            "source_label": "Media Library",
+            "handoff_label": "Resume series"
+          },
+          "playback_stream": {
+            "uri": "https://stream.crispy-tivi.test/media/neon-district-series.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 2520,
+            "source_options": [
+              {
+                "id": "primary",
+                "label": "Primary source",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district-series.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 2520
+              },
+              {
+                "id": "mirror",
+                "label": "Mirror source",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district-series-mirror.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 2520
+              }
+            ],
+            "quality_options": [
+              {
+                "id": "auto",
+                "label": "Auto",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district-series.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 2520
+              },
+              {
+                "id": "1080p",
+                "label": "1080p",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district-series-1080.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 2520
+              },
+              {
+                "id": "720p",
+                "label": "720p",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district-series-720.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 2520
+              }
+            ],
+            "audio_options": [
+              {
+                "id": "auto",
+                "label": "Main mix",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district-series/audio-main.aac",
+                "language": "en"
+              },
+              {
+                "id": "commentary",
+                "label": "Commentary",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district-series/audio-commentary.aac",
+                "language": "en"
+              }
+            ],
+            "subtitle_options": [
+              {
+                "id": "off",
+                "label": "Off",
+                "uri": ""
+              },
+              {
+                "id": "en-cc",
+                "label": "English CC",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district-series/subtitles-en.vtt",
+                "language": "en"
+              },
+              {
+                "id": "de",
+                "label": "Deutsch",
+                "uri": "https://stream.crispy-tivi.test/media/neon-district-series/subtitles-de.vtt",
+                "language": "de"
+              }
+            ]
+          },
+          "artwork": {
+            "kind": "asset",
+            "value": "assets/mocks/poster-shell-1.jpg"
+          }
+        },
+        {
+          "title": "Chef After Dark",
+          "caption": "Resume S2:E4",
+          "playback_source": {
+            "kind": "series",
+            "source_key": "media_library",
+            "content_key": "chef-after-dark",
+            "source_label": "Media Library",
+            "handoff_label": "Resume series"
+          },
+          "playback_stream": {
+            "uri": "https://stream.crispy-tivi.test/media/chef-after-dark-series.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 3480,
+            "source_options": [
+              {
+                "id": "primary",
+                "label": "Primary source",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark-series.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 3480
+              },
+              {
+                "id": "mirror",
+                "label": "Mirror source",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark-series-mirror.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 3480
+              }
+            ],
+            "quality_options": [
+              {
+                "id": "auto",
+                "label": "Auto",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark-series.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 3480
+              },
+              {
+                "id": "1080p",
+                "label": "1080p",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark-series-1080.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 3480
+              },
+              {
+                "id": "720p",
+                "label": "720p",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark-series-720.m3u8",
+                "transport": "hls",
+                "live": false,
+                "seekable": true,
+                "resume_position_seconds": 3480
+              }
+            ],
+            "audio_options": [
+              {
+                "id": "auto",
+                "label": "Main mix",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark-series/audio-main.aac",
+                "language": "en"
+              },
+              {
+                "id": "commentary",
+                "label": "Commentary",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark-series/audio-commentary.aac",
+                "language": "en"
+              }
+            ],
+            "subtitle_options": [
+              {
+                "id": "off",
+                "label": "Off",
+                "uri": ""
+              },
+              {
+                "id": "en-cc",
+                "label": "English CC",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark-series/subtitles-en.vtt",
+                "language": "en"
+              },
+              {
+                "id": "de",
+                "label": "Deutsch",
+                "uri": "https://stream.crispy-tivi.test/media/chef-after-dark-series/subtitles-de.vtt",
+                "language": "de"
+              }
+            ]
+          },
+          "artwork": {
+            "kind": "asset",
+            "value": "assets/mocks/poster-shell-2.jpg"
+          }
+        }
+      ]
+    }
+  ],
+  "series_detail": {
+    "summary_title": "Season and episode playback",
+    "summary_body": "Shadow Signals keeps season choice above episode choice and keeps playback inside the player.",
+    "handoff_label": "Play episode",
+    "seasons": [
+      {
+        "label": "Season 1",
+        "summary": "Entry season for the current series surface.",
+        "episodes": [
+          {
+            "code": "S1:E1",
+            "title": "Shadow Signals",
+            "summary": "The signal appears in the harbor network.",
+            "duration_label": "45 min",
+            "handoff_label": "Play episode",
+            "playback_source": {
+              "kind": "episode",
+              "source_key": "shadow-signals",
+              "content_key": "S1:E1",
+              "source_label": "Shadow Signals",
+              "handoff_label": "Play episode"
+            },
+            "playback_stream": {
+              "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e1.m3u8",
+              "transport": "hls",
+              "live": false,
+              "seekable": true,
+              "resume_position_seconds": 0,
+              "source_options": [
+                {
+                  "id": "primary",
+                  "label": "Primary source",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e1.m3u8",
+                  "transport": "hls",
+                  "live": false,
+                  "seekable": true,
+                  "resume_position_seconds": 0
+                },
+                {
+                  "id": "mirror",
+                  "label": "Mirror source",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e1-mirror.m3u8",
+                  "transport": "hls",
+                  "live": false,
+                  "seekable": true,
+                  "resume_position_seconds": 0
+                }
+              ],
+              "quality_options": [
+                {
+                  "id": "auto",
+                  "label": "Auto",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e1.m3u8",
+                  "transport": "hls",
+                  "live": false,
+                  "seekable": true,
+                  "resume_position_seconds": 0
+                },
+                {
+                  "id": "1080p",
+                  "label": "1080p",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e1-1080.m3u8",
+                  "transport": "hls",
+                  "live": false,
+                  "seekable": true,
+                  "resume_position_seconds": 0
+                },
+                {
+                  "id": "720p",
+                  "label": "720p",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e1-720.m3u8",
+                  "transport": "hls",
+                  "live": false,
+                  "seekable": true,
+                  "resume_position_seconds": 0
+                }
+              ],
+              "audio_options": [
+                {
+                  "id": "auto",
+                  "label": "Main mix",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e1/audio-main.aac",
+                  "language": "en"
+                },
+                {
+                  "id": "commentary",
+                  "label": "Commentary",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e1/audio-commentary.aac",
+                  "language": "en"
+                }
+              ],
+              "subtitle_options": [
+                {
+                  "id": "off",
+                  "label": "Off",
+                  "uri": ""
+                },
+                {
+                  "id": "en-cc",
+                  "label": "English CC",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e1/subtitles-en.vtt",
+                  "language": "en"
+                },
+                {
+                  "id": "de",
+                  "label": "Deutsch",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e1/subtitles-de.vtt",
+                  "language": "de"
+                }
+              ]
+            }
+          },
+          {
+            "code": "S1:E2",
+            "title": "After Current",
+            "summary": "Continue the season flow from the previous episode.",
+            "duration_label": "42 min",
+            "handoff_label": "Play episode",
+            "playback_source": {
+              "kind": "episode",
+              "source_key": "shadow-signals",
+              "content_key": "S1:E2",
+              "source_label": "Shadow Signals",
+              "handoff_label": "Play episode"
+            },
+            "playback_stream": {
+              "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e2.m3u8",
+              "transport": "hls",
+              "live": false,
+              "seekable": true,
+              "resume_position_seconds": 0,
+              "source_options": [
+                {
+                  "id": "primary",
+                  "label": "Primary source",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e2.m3u8",
+                  "transport": "hls",
+                  "live": false,
+                  "seekable": true,
+                  "resume_position_seconds": 0
+                },
+                {
+                  "id": "mirror",
+                  "label": "Mirror source",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e2-mirror.m3u8",
+                  "transport": "hls",
+                  "live": false,
+                  "seekable": true,
+                  "resume_position_seconds": 0
+                }
+              ],
+              "quality_options": [
+                {
+                  "id": "auto",
+                  "label": "Auto",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e2.m3u8",
+                  "transport": "hls",
+                  "live": false,
+                  "seekable": true,
+                  "resume_position_seconds": 0
+                },
+                {
+                  "id": "1080p",
+                  "label": "1080p",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e2-1080.m3u8",
+                  "transport": "hls",
+                  "live": false,
+                  "seekable": true,
+                  "resume_position_seconds": 0
+                },
+                {
+                  "id": "720p",
+                  "label": "720p",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e2-720.m3u8",
+                  "transport": "hls",
+                  "live": false,
+                  "seekable": true,
+                  "resume_position_seconds": 0
+                }
+              ],
+              "audio_options": [
+                {
+                  "id": "auto",
+                  "label": "Main mix",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e2/audio-main.aac",
+                  "language": "en"
+                },
+                {
+                  "id": "commentary",
+                  "label": "Commentary",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e2/audio-commentary.aac",
+                  "language": "en"
+                }
+              ],
+              "subtitle_options": [
+                {
+                  "id": "off",
+                  "label": "Off",
+                  "uri": ""
+                },
+                {
+                  "id": "en-cc",
+                  "label": "English CC",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e2/subtitles-en.vtt",
+                  "language": "en"
+                },
+                {
+                  "id": "de",
+                  "label": "Deutsch",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s1e2/subtitles-de.vtt",
+                  "language": "de"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "label": "Season 2",
+        "summary": "Continuation season with playback ready for the next episode.",
+        "episodes": [
+          {
+            "code": "S2:E1",
+            "title": "Northline",
+            "summary": "The next chapter opens on a drifting transmission.",
+            "duration_label": "47 min",
+            "handoff_label": "Play episode",
+            "playback_source": {
+              "kind": "episode",
+              "source_key": "shadow-signals",
+              "content_key": "S2:E1",
+              "source_label": "Shadow Signals",
+              "handoff_label": "Play episode"
+            },
+            "playback_stream": {
+              "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s2e1.m3u8",
+              "transport": "hls",
+              "live": false,
+              "seekable": true,
+              "resume_position_seconds": 0,
+              "source_options": [
+                {
+                  "id": "primary",
+                  "label": "Primary source",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s2e1.m3u8",
+                  "transport": "hls",
+                  "live": false,
+                  "seekable": true,
+                  "resume_position_seconds": 0
+                },
+                {
+                  "id": "mirror",
+                  "label": "Mirror source",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s2e1-mirror.m3u8",
+                  "transport": "hls",
+                  "live": false,
+                  "seekable": true,
+                  "resume_position_seconds": 0
+                }
+              ],
+              "quality_options": [
+                {
+                  "id": "auto",
+                  "label": "Auto",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s2e1.m3u8",
+                  "transport": "hls",
+                  "live": false,
+                  "seekable": true,
+                  "resume_position_seconds": 0
+                },
+                {
+                  "id": "1080p",
+                  "label": "1080p",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s2e1-1080.m3u8",
+                  "transport": "hls",
+                  "live": false,
+                  "seekable": true,
+                  "resume_position_seconds": 0
+                },
+                {
+                  "id": "720p",
+                  "label": "720p",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s2e1-720.m3u8",
+                  "transport": "hls",
+                  "live": false,
+                  "seekable": true,
+                  "resume_position_seconds": 0
+                }
+              ],
+              "audio_options": [
+                {
+                  "id": "auto",
+                  "label": "Main mix",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s2e1/audio-main.aac",
+                  "language": "en"
+                },
+                {
+                  "id": "commentary",
+                  "label": "Commentary",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s2e1/audio-commentary.aac",
+                  "language": "en"
+                }
+              ],
+              "subtitle_options": [
+                {
+                  "id": "off",
+                  "label": "Off",
+                  "uri": ""
+                },
+                {
+                  "id": "en-cc",
+                  "label": "English CC",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s2e1/subtitles-en.vtt",
+                  "language": "en"
+                },
+                {
+                  "id": "de",
+                  "label": "Deutsch",
+                  "uri": "https://stream.crispy-tivi.test/series/shadow-signals/s2e1/subtitles-de.vtt",
+                  "language": "de"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "notes": [
+    "Rust-owned media runtime snapshot."
+  ]
+}

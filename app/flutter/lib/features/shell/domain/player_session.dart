@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/features/shell/domain/playback_target.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_models.dart';
 import 'package:flutter/foundation.dart';
 
@@ -6,6 +7,14 @@ enum PlayerContentKind { live, movie, episode }
 enum PlayerChromeState { transport, expandedInfo }
 
 enum PlayerChooserKind { audio, subtitles, quality, source }
+
+@immutable
+final class PlayerChooserOption {
+  const PlayerChooserOption({required this.id, required this.label});
+
+  final String id;
+  final String label;
+}
 
 @immutable
 final class PlayerQueueItem {
@@ -19,6 +28,8 @@ final class PlayerQueueItem {
     required this.badges,
     required this.detailLines,
     this.artwork,
+    this.playbackSource,
+    this.playbackStream,
   });
 
   final String eyebrow;
@@ -30,6 +41,8 @@ final class PlayerQueueItem {
   final List<String> badges;
   final List<String> detailLines;
   final ArtworkSource? artwork;
+  final PlaybackSourceSnapshot? playbackSource;
+  final PlaybackStreamSnapshot? playbackStream;
 }
 
 @immutable
@@ -43,12 +56,16 @@ final class PlayerChooserGroup {
 
   final PlayerChooserKind kind;
   final String title;
-  final List<String> options;
+  final List<PlayerChooserOption> options;
   final int selectedIndex;
+
+  PlayerChooserOption get selectedOption => options[selectedIndex];
 }
 
 @immutable
 final class PlayerSession {
+  static const Object _keepPlaybackUri = Object();
+
   const PlayerSession({
     required this.kind,
     required this.originLabel,
@@ -59,6 +76,7 @@ final class PlayerSession {
     required this.secondaryActionLabel,
     required this.chooserGroups,
     required this.statsLines,
+    this.playbackUri,
   });
 
   final PlayerContentKind kind;
@@ -70,12 +88,14 @@ final class PlayerSession {
   final String secondaryActionLabel;
   final List<PlayerChooserGroup> chooserGroups;
   final List<String> statsLines;
+  final String? playbackUri;
 
   PlayerQueueItem get activeItem => queue[activeIndex];
 
   PlayerSession copyWith({
     int? activeIndex,
     List<PlayerChooserGroup>? chooserGroups,
+    Object? playbackUri = _keepPlaybackUri,
   }) {
     return PlayerSession(
       kind: kind,
@@ -87,36 +107,16 @@ final class PlayerSession {
       secondaryActionLabel: secondaryActionLabel,
       chooserGroups: chooserGroups ?? this.chooserGroups,
       statsLines: statsLines,
+      playbackUri:
+          identical(playbackUri, _keepPlaybackUri)
+              ? this.playbackUri
+              : playbackUri as String?,
     );
   }
 
   PlayerChooserGroup chooser(PlayerChooserKind kind) {
     return chooserGroups.firstWhere(
       (PlayerChooserGroup group) => group.kind == kind,
-    );
-  }
-
-  PlayerSession selectQueueIndex(int index) {
-    if (index == activeIndex) {
-      return this;
-    }
-    return copyWith(activeIndex: index.clamp(0, queue.length - 1));
-  }
-
-  PlayerSession selectChooserOption(PlayerChooserKind kind, int optionIndex) {
-    return copyWith(
-      chooserGroups: chooserGroups
-          .map(
-            (PlayerChooserGroup group) => group.kind == kind
-                ? PlayerChooserGroup(
-                    kind: group.kind,
-                    title: group.title,
-                    options: group.options,
-                    selectedIndex: optionIndex.clamp(0, group.options.length - 1),
-                  )
-                : group,
-          )
-          .toList(growable: false),
     );
   }
 }

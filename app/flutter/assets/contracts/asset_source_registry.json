@@ -1,0 +1,457 @@
+{
+  "title": "CrispyTivi Source Registry",
+  "version": "1",
+  "provider_types": [
+    {
+      "provider_key": "m3u_url",
+      "provider_type": "M3U URL",
+      "family": "playlist",
+      "connection_mode": "remote_url",
+      "summary": "Direct playlist URL with optional guide pairing and catch-up support.",
+      "capability_model": {
+        "live_tv": true,
+        "guide": true,
+        "movies": false,
+        "series": false,
+        "catch_up": true,
+        "archive_playback": true,
+        "remote_playlist_url": true,
+        "local_playlist_file": false,
+        "account_authentication": false,
+        "epg_import": true
+      },
+      "capabilities": [
+        {
+          "id": "live_tv",
+          "title": "Live TV",
+          "summary": "Map playlist rows to channels and categories.",
+          "supported": true
+        },
+        {
+          "id": "guide",
+          "title": "Guide",
+          "summary": "Pair XMLTV for EPG coverage and better browse context.",
+          "supported": true
+        },
+        {
+          "id": "catch_up",
+          "title": "Catch-up",
+          "summary": "Use archive URLs when the source exposes timeshift.",
+          "supported": true
+        },
+        {
+          "id": "movies",
+          "title": "Movies",
+          "summary": "Not a native catalog lane, but playable media can still surface.",
+          "supported": false
+        },
+        {
+          "id": "series",
+          "title": "Series",
+          "summary": "Series metadata depends on the external playlist and guide pairing.",
+          "supported": false
+        }
+      ],
+      "health": {
+        "status": "Healthy",
+        "summary": "Playlist reachable and validation passed.",
+        "last_checked": "2 minutes ago",
+        "last_sync": "2 minutes ago"
+      },
+      "auth": {
+        "status": "Not required",
+        "progress": "0%",
+        "summary": "No account credentials are needed for a direct playlist URL.",
+        "primary_action": "Continue",
+        "secondary_action": "Back",
+        "field_labels": [
+          "Playlist URL",
+          "XMLTV URL"
+        ],
+        "helper_lines": [
+          "Use this lane for remote playlist URLs.",
+          "Guide pairing is optional but recommended."
+        ]
+      },
+      "import": {
+        "status": "Ready",
+        "progress": "100%",
+        "summary": "Playlist can import once URLs validate.",
+        "primary_action": "Start import",
+        "secondary_action": "Review"
+      },
+      "onboarding_hint": "Start with a direct URL, then add XMLTV if available."
+    },
+    {
+      "provider_key": "local_m3u",
+      "provider_type": "local M3U",
+      "family": "playlist",
+      "connection_mode": "local_file",
+      "summary": "On-device playlist import from a local file or mounted storage path.",
+      "capability_model": {
+        "live_tv": true,
+        "guide": true,
+        "movies": false,
+        "series": false,
+        "catch_up": false,
+        "archive_playback": false,
+        "remote_playlist_url": false,
+        "local_playlist_file": true,
+        "account_authentication": false,
+        "epg_import": true
+      },
+      "capabilities": [
+        {
+          "id": "live_tv",
+          "title": "Live TV",
+          "summary": "Load channels from a local playlist file.",
+          "supported": true
+        },
+        {
+          "id": "guide",
+          "title": "Guide",
+          "summary": "Pair XMLTV locally or from a nearby import source.",
+          "supported": true
+        },
+        {
+          "id": "local_playlist",
+          "title": "Local file",
+          "summary": "Import from a file path or attached storage target.",
+          "supported": true
+        },
+        {
+          "id": "catch_up",
+          "title": "Catch-up",
+          "summary": "Not advertised unless the imported playlist carries archive data.",
+          "supported": false
+        }
+      ],
+      "health": {
+        "status": "Healthy",
+        "summary": "Local file loaded and parsed.",
+        "last_checked": "1 minute ago",
+        "last_sync": "1 minute ago"
+      },
+      "auth": {
+        "status": "Not required",
+        "progress": "0%",
+        "summary": "Local files do not require credentials.",
+        "primary_action": "Continue",
+        "secondary_action": "Back",
+        "field_labels": [
+          "Playlist file",
+          "XMLTV file"
+        ],
+        "helper_lines": [
+          "Use this lane for attached storage or imported files.",
+          "File validation should happen before import starts."
+        ]
+      },
+      "import": {
+        "status": "Complete",
+        "progress": "100%",
+        "summary": "Local playlist import is complete and ready to browse.",
+        "primary_action": "Open sources",
+        "secondary_action": "Review"
+      },
+      "onboarding_hint": "Choose a local playlist file, then pair guide data if needed."
+    },
+    {
+      "provider_key": "xtream",
+      "provider_type": "Xtream",
+      "family": "portal",
+      "connection_mode": "portal_account",
+      "summary": "Account-backed provider with live, movies, series, and guide lanes.",
+      "capability_model": {
+        "live_tv": true,
+        "guide": true,
+        "movies": true,
+        "series": true,
+        "catch_up": true,
+        "archive_playback": true,
+        "remote_playlist_url": false,
+        "local_playlist_file": false,
+        "account_authentication": true,
+        "epg_import": true
+      },
+      "capabilities": [
+        {
+          "id": "live_tv",
+          "title": "Live TV",
+          "summary": "Portal groups can surface channel lists and live categories.",
+          "supported": true
+        },
+        {
+          "id": "movies",
+          "title": "Movies",
+          "summary": "Catalog data exposes a movie lane with browse and detail views.",
+          "supported": true
+        },
+        {
+          "id": "series",
+          "title": "Series",
+          "summary": "Series catalogs can feed seasons, episodes, and resume state.",
+          "supported": true
+        },
+        {
+          "id": "guide",
+          "title": "Guide",
+          "summary": "EPG data can support channel schedule overlays and browse grids.",
+          "supported": true
+        },
+        {
+          "id": "catch_up",
+          "title": "Catch-up",
+          "summary": "Archive playback is available when the portal exposes it.",
+          "supported": true
+        }
+      ],
+      "health": {
+        "status": "Needs auth",
+        "summary": "Portal access is waiting for valid credentials.",
+        "last_checked": "Sync blocked",
+        "last_sync": "Sync blocked"
+      },
+      "auth": {
+        "status": "Needs auth",
+        "progress": "0%",
+        "summary": "Credentials are required before catalog sync can continue.",
+        "primary_action": "Verify access",
+        "secondary_action": "Back",
+        "field_labels": [
+          "Server URL",
+          "Username",
+          "Password"
+        ],
+        "helper_lines": [
+          "Use the portal endpoint supplied by the provider.",
+          "Validation should happen before import begins."
+        ]
+      },
+      "import": {
+        "status": "Blocked",
+        "progress": "0%",
+        "summary": "Import is paused until auth succeeds.",
+        "primary_action": "Continue",
+        "secondary_action": "Review"
+      },
+      "onboarding_hint": "Authenticate first, then import catalog data and guide fields."
+    },
+    {
+      "provider_key": "stalker",
+      "provider_type": "Stalker",
+      "family": "portal",
+      "connection_mode": "portal_device",
+      "summary": "MAG/Stalker portal with device-backed authentication and live/media lanes.",
+      "capability_model": {
+        "live_tv": true,
+        "guide": true,
+        "movies": true,
+        "series": true,
+        "catch_up": true,
+        "archive_playback": true,
+        "remote_playlist_url": false,
+        "local_playlist_file": false,
+        "account_authentication": true,
+        "epg_import": true
+      },
+      "capabilities": [
+        {
+          "id": "live_tv",
+          "title": "Live TV",
+          "summary": "Device-backed portals can surface channel lists and current-state browse.",
+          "supported": true
+        },
+        {
+          "id": "movies",
+          "title": "Movies",
+          "summary": "Portal catalogs expose movie browsing and detail lanes.",
+          "supported": true
+        },
+        {
+          "id": "series",
+          "title": "Series",
+          "summary": "Series catalogs can populate seasons, episodes, and resume behavior.",
+          "supported": true
+        },
+        {
+          "id": "guide",
+          "title": "Guide",
+          "summary": "Portal EPG data can drive channel schedules and overlays.",
+          "supported": true
+        },
+        {
+          "id": "catch_up",
+          "title": "Catch-up",
+          "summary": "Archive playback depends on portal support and device session state.",
+          "supported": true
+        }
+      ],
+      "health": {
+        "status": "Degraded",
+        "summary": "Portal session requires reconnect to refresh the device token.",
+        "last_checked": "14 minutes ago",
+        "last_sync": "Sync pending"
+      },
+      "auth": {
+        "status": "Reauth required",
+        "progress": "35%",
+        "summary": "The portal session expired and needs a device reconnect.",
+        "primary_action": "Reconnect",
+        "secondary_action": "Back",
+        "field_labels": [
+          "Portal URL",
+          "MAC address",
+          "Device ID"
+        ],
+        "helper_lines": [
+          "Keep portal credentials separate from playlist flows.",
+          "Device-backed sessions must unwind safely if validation fails."
+        ]
+      },
+      "import": {
+        "status": "Importing",
+        "progress": "68%",
+        "summary": "Catalog refresh is running after reconnect.",
+        "primary_action": "Continue",
+        "secondary_action": "Pause"
+      },
+      "onboarding_hint": "Reconnect the device, then let the portal refresh its catalog and guide state."
+    }
+  ],
+  "onboarding": {
+    "selected_provider_type": "M3U URL",
+    "active_step": "Source Type",
+    "step_order": [
+      "Source Type",
+      "Connection",
+      "Credentials",
+      "Import",
+      "Finish"
+    ],
+    "steps": [
+      {
+        "step": "Source Type",
+        "title": "Choose source type",
+        "summary": "Select the provider family first so later fields match the right import and auth model.",
+        "primary_action": "Continue",
+        "secondary_action": "Back",
+        "field_labels": [
+          "Source type",
+          "Display name"
+        ],
+        "helper_lines": [
+          "Keep source/provider selection inside Settings-owned flows.",
+          "Wizard steps stay ordered and reversible."
+        ]
+      },
+      {
+        "step": "Connection",
+        "title": "Add connection details",
+        "summary": "Capture the endpoint and source-specific path before auth or validation runs.",
+        "primary_action": "Validate connection",
+        "secondary_action": "Back",
+        "field_labels": [
+          "Connection endpoint",
+          "Headers"
+        ],
+        "helper_lines": [
+          "Connection validation should fail here instead of later import screens.",
+          "Temporary connection state must not auto-restore into a stale step."
+        ]
+      },
+      {
+        "step": "Credentials",
+        "title": "Authenticate source",
+        "summary": "Sensitive credentials stay in the wizard and should never auto-restore into a secret-bearing step.",
+        "primary_action": "Verify access",
+        "secondary_action": "Back",
+        "field_labels": [
+          "Username",
+          "Password"
+        ],
+        "helper_lines": [
+          "Auth can be entered for new sources or reconnect flows on existing sources.",
+          "Back from this step returns safely to connection rather than leaving the user in a broken state."
+        ]
+      },
+      {
+        "step": "Import",
+        "title": "Choose import scope",
+        "summary": "Review what the source will bring in and confirm the validation result before final import begins.",
+        "primary_action": "Start import",
+        "secondary_action": "Back",
+        "field_labels": [
+          "Import scope",
+          "Validation result"
+        ],
+        "helper_lines": [
+          "Import confirmation is a dedicated step, not a hidden side effect of auth.",
+          "Failures here should unwind cleanly back through the wizard."
+        ]
+      },
+      {
+        "step": "Finish",
+        "title": "Finish setup",
+        "summary": "Complete the source handoff and return to source overview with health and capability status visible.",
+        "primary_action": "Return to sources",
+        "secondary_action": "Back",
+        "field_labels": [
+          "Validation result",
+          "Import scope"
+        ],
+        "helper_lines": [
+          "Success returns to the Settings-owned source overview, not to a detached source domain.",
+          "The next runtime phases can rely on this onboarding lane being complete."
+        ]
+      }
+    ],
+    "provider_copy": [
+      {
+        "provider_key": "m3u_url",
+        "provider_type": "M3U URL",
+        "title": "Remote playlist",
+        "summary": "Use a direct M3U URL when the provider exposes a playlist endpoint.",
+        "helper_lines": [
+          "Best for direct playlist URLs and optional guide pairing.",
+          "No account credentials are required unless the playlist is gated."
+        ]
+      },
+      {
+        "provider_key": "local_m3u",
+        "provider_type": "local M3U",
+        "title": "Local file",
+        "summary": "Use a local file when the playlist is stored on device or mounted storage.",
+        "helper_lines": [
+          "Good for offline or imported playlist workflows.",
+          "Guide data can be paired after the file is validated."
+        ]
+      },
+      {
+        "provider_key": "xtream",
+        "provider_type": "Xtream",
+        "title": "Account-backed portal",
+        "summary": "Use Xtream when the provider exposes a username/password portal model.",
+        "helper_lines": [
+          "Credentials are required before catalog import can begin.",
+          "Live TV, movies, series, and EPG can all be populated from the portal."
+        ]
+      },
+      {
+        "provider_key": "stalker",
+        "provider_type": "Stalker",
+        "title": "Device-backed portal",
+        "summary": "Use Stalker when the provider expects a MAG-style device portal connection.",
+        "helper_lines": [
+          "Portal URL plus device identifiers are required.",
+          "Reconnect and refresh should happen safely inside the wizard."
+        ]
+      }
+    ]
+  },
+  "registry_notes": [
+    "Provider metadata stays Rust-owned so Flutter can consume a stable snapshot later.",
+    "The registry models both capability support and current state for each provider family.",
+    "Auth and import progress are explicit so the onboarding wizard can render status without guessing."
+  ]
+}

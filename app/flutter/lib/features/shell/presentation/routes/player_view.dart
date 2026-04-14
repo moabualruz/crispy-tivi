@@ -3,14 +3,20 @@ import 'package:crispy_tivi/core/theme/crispy_shell_icons.dart';
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
 import 'package:crispy_tivi/features/shell/domain/player_session.dart';
+import 'package:crispy_tivi/features/shell/domain/shell_models.dart';
+import 'package:crispy_tivi/features/shell/presentation/view_model/player_playback_controller.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/shell_artwork.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/shell_controls.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/shell_iconography.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import 'package:flutter/material.dart';
+
+typedef PlaybackSurfaceBuilder = Widget Function(String playbackUri);
 
 class PlayerView extends StatelessWidget {
   const PlayerView({
     required this.session,
+    required this.playbackController,
     required this.chromeState,
     required this.activeChooser,
     required this.onBack,
@@ -18,10 +24,12 @@ class PlayerView extends StatelessWidget {
     required this.onOpenChooser,
     required this.onSelectChooserOption,
     required this.onSelectQueueIndex,
+    this.playbackSurfaceBuilder,
     super.key,
   });
 
   final PlayerSession session;
+  final PlayerPlaybackController playbackController;
   final PlayerChromeState chromeState;
   final PlayerChooserKind? activeChooser;
   final VoidCallback onBack;
@@ -29,6 +37,7 @@ class PlayerView extends StatelessWidget {
   final ValueChanged<PlayerChooserKind> onOpenChooser;
   final void Function(PlayerChooserKind kind, int index) onSelectChooserOption;
   final ValueChanged<int> onSelectQueueIndex;
+  final PlaybackSurfaceBuilder? playbackSurfaceBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -44,25 +53,12 @@ class PlayerView extends StatelessWidget {
       child: Stack(
         children: <Widget>[
           Positioned.fill(
-            child:
-                item.artwork == null
-                    ? DecoratedBox(
-                      decoration: CrispyShellRoles.previewStageDecoration(),
-                    )
-                    : DecoratedBox(
-                      decoration: CrispyShellRoles.previewStageDecoration(),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(
-                          CrispyOverhaulTokens.radiusSheet,
-                        ),
-                        child: ShellArtwork(
-                          source: item.artwork,
-                          borderRadius: BorderRadius.circular(
-                            CrispyOverhaulTokens.radiusSheet,
-                          ),
-                        ),
-                      ),
-                    ),
+            child: _PlaybackBackdrop(
+              session: session,
+              playbackController: playbackController,
+              artwork: item.artwork,
+              playbackSurfaceBuilder: playbackSurfaceBuilder,
+            ),
           ),
           Positioned.fill(
             child: DecoratedBox(
@@ -229,7 +225,7 @@ class PlayerView extends StatelessWidget {
                                     controlKey: Key(
                                       'player-chooser-option-${chooser.kind.name}-$index',
                                     ),
-                                    label: chooser.options[index],
+                                    label: chooser.options[index].label,
                                     onPressed:
                                         () => onSelectChooserOption(
                                           chooser.kind,
@@ -256,6 +252,68 @@ class PlayerView extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _PlaybackBackdrop extends StatelessWidget {
+  const _PlaybackBackdrop({
+    required this.session,
+    required this.playbackController,
+    required this.artwork,
+    required this.playbackSurfaceBuilder,
+  });
+
+  final PlayerSession session;
+  final PlayerPlaybackController playbackController;
+  final ArtworkSource? artwork;
+  final PlaybackSurfaceBuilder? playbackSurfaceBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        DecoratedBox(decoration: CrispyShellRoles.previewStageDecoration()),
+        if (artwork != null)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(
+              CrispyOverhaulTokens.radiusSheet,
+            ),
+            child: ShellArtwork(
+              source: artwork,
+              borderRadius: BorderRadius.circular(
+                CrispyOverhaulTokens.radiusSheet,
+              ),
+            ),
+          ),
+        if (session.playbackUri != null)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(
+              CrispyOverhaulTokens.radiusSheet,
+            ),
+            child: AnimatedBuilder(
+              animation: playbackController,
+              builder: (BuildContext context, Widget? child) {
+                if (playbackSurfaceBuilder != null) {
+                  return playbackSurfaceBuilder!(session.playbackUri!);
+                }
+                final VideoController? controller =
+                    playbackController.videoController;
+                if (!playbackController.backendReady || controller == null) {
+                  return DecoratedBox(
+                    decoration: CrispyShellRoles.previewStageDecoration(),
+                    child: const SizedBox.expand(),
+                  );
+                }
+                return Video(
+                  controller: controller,
+                  controls: (VideoState state) => const SizedBox.shrink(),
+                );
+              },
+            ),
+          ),
+      ],
     );
   }
 }

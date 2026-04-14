@@ -4,10 +4,31 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[lints]
+workspace = true
+
 [lib]
 name = "crispy_ffi"
 path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
+crispy-m3u.workspace = true
+crispy-iptv-tools.workspace = true
+crispy-xmltv.workspace = true
+crispy-catchup.workspace = true
+chrono.workspace = true
+flutter_rust_bridge.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+crispy-stream-checker.workspace = true
+crispy-media-probe.workspace = true
+tokio.workspace = true
+crispy-stalker.workspace = true
+crispy-xtream.workspace = true
+reqwest.workspace = true
+
+[dev-dependencies]
+wiremock.workspace = true

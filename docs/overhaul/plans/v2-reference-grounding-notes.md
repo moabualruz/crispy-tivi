@@ -12,11 +12,21 @@ pass, in addition to the conversation-history full spec.
 
 - `design/reference-images/tv-ui-2026/`
 - `design/reference-images/tv-ui-2026-more/`
+- `for_study/Megacubo`
+- `for_study/hypnotix`
+- `for_study/iptvnator`
+- `for_study/player-ui-study/*`
+- `rust/shared/crispy-*`
 
 ## Reference use
 
 These references are not authority over the product spec, but they are the
-mandatory grounding set for visual composition, hierarchy, and chrome behavior.
+mandatory grounding set for:
+
+- visual composition, hierarchy, and chrome behavior
+- provider/setup/runtime architecture expectations
+- player and IPTV interaction patterns
+- real implementation decomposition after the UI-first baseline
 
 ## Non-authority screenshot warning
 
@@ -57,6 +67,32 @@ the screenshot loses immediately.
 ### YouTube
 
 - player OSD and info hierarchy should be examined as a reference for clarity
+
+## Runtime grounding cues
+
+### Megacubo
+
+- setup wizard and list onboarding matter as real product flows
+- continue-watching/history should be treated as real user features
+- transmission/source switching must stay explicit in playback
+
+### Hypnotix
+
+- provider types should remain easy to understand
+- live / movies / series framing should stay direct
+
+### IPTVnator
+
+- runtime architecture should stay provider/domain-sliced, not monolithic
+- large live-channel surfaces need serious list/guide scaling strategy
+- desktop-class persisted favorites/recent-items behavior should be explicit
+- deterministic mock servers are valuable for provider/runtime tests
+
+### Shared Rust crates
+
+- runtime phases should use the existing `crispy-*` crates as the first-choice
+  implementation foundation for protocol parsing, provider integration, EPG
+  ingestion, catchup derivation, normalization, and diagnostics
 
 ## Hard rule
 

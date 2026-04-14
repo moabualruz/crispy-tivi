@@ -83,14 +83,14 @@ class ShellControlButton extends StatelessWidget {
     final Widget resolvedChild =
         expandLabelRow || contentAlignment != null
             ? Align(
-                alignment:
-                    contentAlignment ??
-                    CrispyShellControls.contentAlignment(
-                      controlRole,
-                      presentation,
-                    ),
-                child: child,
-              )
+              alignment:
+                  contentAlignment ??
+                  CrispyShellControls.contentAlignment(
+                    controlRole,
+                    presentation,
+                  ),
+              child: child,
+            )
             : child;
 
     return Semantics(
@@ -189,7 +189,8 @@ class ShellControlButton extends StatelessWidget {
 
   FontWeight get _fontWeight {
     return switch (controlRole) {
-      ShellControlRole.navigation => selected ? FontWeight.w700 : FontWeight.w600,
+      ShellControlRole.navigation =>
+        selected ? FontWeight.w700 : FontWeight.w600,
       ShellControlRole.utility => FontWeight.w600,
       ShellControlRole.action => FontWeight.w600,
       ShellControlRole.selector => selected ? FontWeight.w600 : FontWeight.w500,

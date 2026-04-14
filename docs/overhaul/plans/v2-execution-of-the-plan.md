@@ -5,8 +5,8 @@ Date: 2026-04-11
 
 ## Purpose
 
-This document is the plan for executing the v2 plan itself **through the final
-finished product**.
+This document is the plan for executing the v2 plan itself through the current
+UI-first app baseline and then into the later full implementation track.
 
 It defines:
 
@@ -14,7 +14,8 @@ It defines:
 - gate conditions
 - active team lanes
 - required evidence before advancing
-- final completion conditions
+- UI-first completion conditions
+- later full-implementation phase entry conditions
 
 ## Active authority stack
 
@@ -236,26 +237,81 @@ Current branch state: complete
 
 Output:
 
-- player complete end-to-end
+- retained player baseline complete for the UI-first app
 
 Gate:
 
 - player behavior/tests/flows verified
 
-Current branch state: complete
+Current branch state: retained baseline complete
 
-### Phase 15: final integration / completion hardening
+### Phase 15: UI-first app integration / hardening
 
 Output:
 
-- final product integration complete
-- final evidence pack complete
+- UI-first app integration complete
+- UI-first evidence pack complete
 
 Gate:
 
-- full-product completion criteria satisfied
+- UI-first completion criteria satisfied
 
 Current branch state: complete
+
+### Phase 16: player final UI/design completion
+
+Current branch state: complete
+
+### Phase 17: full implementation planning / execution reset
+
+Current branch state: complete
+
+### Phase 18+: full implementation track
+
+- Phase 18 runtime contract reset: complete
+- Phase 19 source/provider registry implementation: complete
+- Phase 20 Live TV / EPG implementation: complete
+- Phase 21 Media / Search implementation: complete
+- Phase 22 playback backend integration: complete
+- Phase 23 persistence, resume, and personalization: complete
+- Phase 24 production hardening: complete
+- Phase 25 full app runtime audit: complete
+- Phase 26 demo/test gating and first-run truth: complete
+- Phase 27 provider/controller wiring completion: complete
+- Phase 28 screen and widget runtime audit closure: complete
+- Phase 29 release-readiness audit and field validation: complete
+
+Current state note:
+
+- Phases 18 to 24 close the retained runtime foundation track
+- they do not by themselves prove that every user-facing workflow is fully
+  wired in real mode, correctly gated in demo/test mode, or manually validated
+  under real sources
+- next allowed lane: Phase 30
+
+Post-Phase-29 note:
+
+- because Phase 29 closed as `not ready`, the next valid work is the
+  documented remediation track in
+  `docs/overhaul/plans/v2-post-phase29-remediation-plan.md`
+- Phase 30 provider persistence/import runtime is complete
+- Phase 31 provider-driven runtime hydration is complete
+- Phase 32 Rust-boundary correction is complete
+- Phase 35 playback/diagnostics Rust migration plus release-readiness rerun is
+  complete
+- remediation outcome from Phase 35 remained `not ready`
+- blocker ledger now lives in
+  `docs/overhaul/plans/v2-phase35-release-blockers.md`
+- follow-on cleanup track now lives in
+  `docs/overhaul/plans/v2-post-phase35-release-cleanup-plan.md`
+- Phase 38 shared XMLTV/catchup activation is complete
+- Phase 39 release-warning cleanup is complete
+- cleanup track outcome: ready
+- next allowed lane: none inside the current track
+- execution handoff for Phase 25 onward:
+  - `docs/overhaul/plans/v2-phase25-audit-ledger.md`
+  - `docs/overhaul/plans/v2-phase25-research-notes.md`
+  - `docs/overhaul/plans/v2-phase25-repair-order.md`
 
 Phase 15 verification evidence:
 
@@ -273,7 +329,132 @@ Phase 15 closure notes:
 
 - final retained shell/player/settings/live/media/search integration is verified
 - Linux release state is restored after Linux integration smoke
-- no known blocking regressions remain in the current branch state
+- no known blocking regressions remain in the current UI-first branch state
+
+### Phase 16: player final UI/design completion
+
+Output:
+
+- final player visual/design completion
+- final player control-language completion
+- final player design evidence pack complete
+
+Gate:
+
+- player visuals, controls, OSD states, chooser language, and route-entry
+  behavior are fully re-audited against the approved reference set and current
+  requirements
+- no remaining player design drift remains in app code, docs, or design HTML
+
+Current branch state: complete
+
+Phase 16 verification evidence:
+
+- `flutter analyze`
+- `flutter test test/features/shell/player_view_test.dart`
+- `flutter build linux`
+- `flutter build web`
+- browser-driven preview evidence from:
+  - `design/docs/player-mock-preview.html`
+  - `.playwright-cli/phase16-player-preview.png`
+
+### Phase 17: full implementation planning / execution reset
+
+Output:
+
+- full implementation plan replaces UI-first completion framing
+- real data/playback/provider/domain implementation phases are explicitly
+  defined
+
+Gate:
+
+- UI-first baseline is accepted as stable input
+- remaining real-implementation scope is explicitly decomposed before product
+  completion is discussed again
+
+Current branch state: complete
+
+Phase 17 output artifact:
+
+- `docs/overhaul/plans/v2-full-implementation-plan.md`
+- `docs/overhaul/plans/v2-implementation-reference-study.md`
+
+Phase 17 follow-on phase order:
+
+- Phase 18: runtime contract reset
+- Phase 19: source/provider registry implementation
+- Phase 20: Live TV and EPG implementation
+- Phase 21: Media and Search implementation
+- Phase 21 carries retained asset-backed Media/Search runtime snapshots in the
+  data/domain boundary until provider-backed replacement lands
+- Phase 22: playback backend integration
+- Phase 23: persistence, resume, and personalization
+- Phase 24: production hardening
+- Phase 25: full app runtime audit
+- Phase 26: demo/test gating and first-run truth
+- Phase 27: provider/controller wiring completion
+- Phase 28: screen and widget runtime audit closure
+- Phase 29: release-readiness audit and field validation
+
+Current branch state after follow-on start:
+
+- Phase 18 complete
+- Phase 19 complete
+- Phase 20 complete
+- Phase 21 complete
+- Phase 22 complete
+- Phase 23 complete
+- Phase 24 complete
+- Phase 25 complete
+- Phase 26 complete
+- Phase 27 complete
+- Phase 28 complete
+- Phase 29 complete
+- next allowed lane: Phase 30
+
+Runtime-foundation rule for the follow-on phases:
+
+- Phase 18 onward must prefer the existing shared Rust crates in
+  `rust/shared/crispy-*` for protocol and business responsibilities before
+  inventing new app-local replacements
+- Phase 18 onward must stay grounded in the local study repos under
+  `for_study/`, especially:
+  - `Megacubo` for setup/history/list-management expectations
+  - `Hypnotix` for provider simplicity and type framing
+  - `IPTVnator` for provider/data-source architecture, large-list handling, EPG
+    strategy, and persisted favorites/recent-items expectations
+- Phase 18 runtime-boundary work must expose stable Flutter repository
+  interfaces first and keep temporary asset-backed implementations behind
+  those interfaces until Rust-backed replacements are ready.
+- Phase 18 closure must record the runtime replacement map for
+  contract/content/bootstrap ownership in a phase doc.
+- Phase 19 source/provider closure must record the retained source-registry
+  replacement map and must route Settings-owned provider flows through the
+  runtime source registry rather than legacy `ShellContent` source cards.
+- Phase 20 live-TV closure must record the retained live-TV runtime boundary
+  and must route browse groups, guide rows, and selected-detail state through
+  that runtime path rather than heuristic group slicing or legacy
+  `ShellContent` live-TV browse/guide data.
+- Phase 21 media/search closure must record the retained media/search runtime
+  boundary and must route active Media/Search behavior through that runtime
+  path rather than legacy `ShellContent` movie/series/search fields.
+- Phase 25 must produce a route/widget/workflow audit ledger for both real mode
+  and explicit demo/test mode before later completion claims are credible.
+- Phase 26 may not start until the Phase 25 repair-order artifact exists.
+- Phase 26 must prove seeded/demo data is gated off the default boot path and
+  that fresh installs land in a true zero-provider first-run flow.
+- Phase 26 closure is recorded in
+  `docs/overhaul/plans/v2-phase26-demo-test-gating.md`.
+- Phase 27 must finish provider/controller ownership so setup/auth/import
+  behavior is real, typed, validated, and runtime-backed rather than
+  scaffolded.
+- Phase 27 closure is recorded in
+  `docs/overhaul/plans/v2-phase27-provider-controller-wiring.md`.
+- Phase 28 must close the remaining screen/widget runtime-audit gaps and remove
+  fallback shaping from presentation surfaces where retained runtime boundaries
+  already exist.
+- Phase 29 must manually validate real-source behavior and recheck release
+  readiness after the audit-track fixes land.
 
 ## Vertical execution rule
 
@@ -335,9 +516,9 @@ phase may be recorded as complete.
 5. Every spawned lane follows `AGENTS.md`.
 6. Player remains blocked until the player pre-code design gate is complete.
 
-## Full-product completion definition
+## UI-first completion definition
 
-The v2 product is not complete until all of the following are true:
+The UI-first app baseline is complete only when all of the following are true:
 
 - shell complete + verified
 - onboarding/auth/import complete + verified
@@ -348,6 +529,18 @@ The v2 product is not complete until all of the following are true:
 - series complete + verified
 - search complete + verified
 - player design gate complete + verified
-- player complete + verified
-- final integration evidence exists
-- no known blocking regressions remain
+- retained player baseline complete + verified
+- UI-first integration evidence exists
+- no known blocking regressions remain in the UI-first branch state
+
+## Full-product completion definition
+
+The v2 product is not complete until:
+
+- the UI-first app baseline is complete
+- Phase 16 player final UI/design completion is complete
+- Phase 17 full implementation planning/execution reset is complete
+- later real-implementation phases for providers, playback, persistence,
+  onboarding/import/auth, production hardening, full-app audit, demo/test
+  gating, provider/controller wiring, runtime-audit closure, and release
+  validation are executed and verified

@@ -116,7 +116,10 @@ final class CrispyShellRoles {
           selected
               ? CrispyOverhaulTokens.navSelectedBackground
               : CrispyOverhaulTokens.surfaceInset,
-      minimumSize: Size(0, CrispyShellControls.height(ShellControlRole.selector)),
+      minimumSize: Size(
+        0,
+        CrispyShellControls.height(ShellControlRole.selector),
+      ),
       padding: CrispyShellControls.padding(
         ShellControlRole.selector,
         ShellControlPresentation.textOnly,
@@ -147,8 +150,10 @@ final class CrispyShellRoles {
           selected
               ? CrispyOverhaulTokens.navSelectedBackground
               : Colors.transparent,
-      minimumSize:
-          Size(0, CrispyShellControls.height(ShellControlRole.navigation)),
+      minimumSize: Size(
+        0,
+        CrispyShellControls.height(ShellControlRole.navigation),
+      ),
       padding: CrispyShellControls.padding(
         ShellControlRole.navigation,
         ShellControlPresentation.iconAndText,
@@ -174,7 +179,10 @@ final class CrispyShellRoles {
           selected
               ? CrispyOverhaulTokens.utilitySelectedBackground
               : CrispyOverhaulTokens.utilityBackground,
-      minimumSize: Size(0, CrispyShellControls.height(ShellControlRole.utility)),
+      minimumSize: Size(
+        0,
+        CrispyShellControls.height(ShellControlRole.utility),
+      ),
       padding: CrispyShellControls.padding(
         ShellControlRole.utility,
         ShellControlPresentation.iconAndText,
@@ -274,11 +282,7 @@ final class CrispyShellRoles {
     gradient: LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: <Color>[
-        Color(0x40000000),
-        Color(0x660A0A0C),
-        Color(0xCC0A0A0C),
-      ],
+      colors: <Color>[Color(0x40000000), Color(0x660A0A0C), Color(0xCC0A0A0C)],
     ),
   );
 

@@ -1,0 +1,714 @@
+{
+  "title": "CrispyTivi Live TV Runtime",
+  "version": "1",
+  "provider": {
+    "provider_key": "home_fiber_iptv",
+    "provider_type": "M3U + XMLTV",
+    "family": "playlist",
+    "connection_mode": "remote_url",
+    "source_name": "Home Fiber IPTV",
+    "status": "Healthy",
+    "summary": "Live channels and guide data are synchronized for browse and playback.",
+    "last_sync": "2 minutes ago",
+    "guide_health": "EPG verified"
+  },
+  "browsing": {
+    "active_panel": "Channels",
+    "selected_group": "All",
+    "selected_channel": "118 Arena Live",
+    "group_order": [
+      "All",
+      "News",
+      "Sports",
+      "Movies",
+      "Kids"
+    ],
+    "groups": [
+      {
+        "id": "all",
+        "title": "All",
+        "summary": "Every available live channel",
+        "channel_count": 4,
+        "selected": true
+      },
+      {
+        "id": "news",
+        "title": "News",
+        "summary": "Channel rows focused on news and current affairs",
+        "channel_count": 1,
+        "selected": false
+      },
+      {
+        "id": "sports",
+        "title": "Sports",
+        "summary": "Live sports and replay-heavy channels",
+        "channel_count": 1,
+        "selected": false
+      },
+      {
+        "id": "movies",
+        "title": "Movies",
+        "summary": "Cinematic channels and film blocks",
+        "channel_count": 1,
+        "selected": false
+      },
+      {
+        "id": "kids",
+        "title": "Kids",
+        "summary": "Family and daytime channels",
+        "channel_count": 1,
+        "selected": false
+      }
+    ]
+  },
+  "channels": [
+    {
+      "number": "101",
+      "name": "Crispy One",
+      "group": "News",
+      "state": "selected",
+      "live_edge": true,
+      "catch_up": true,
+      "archive": true,
+      "playback_source": {
+        "kind": "live_channel",
+        "source_key": "home_fiber_iptv",
+        "content_key": "101",
+        "source_label": "Home Fiber IPTV",
+        "handoff_label": "Watch live"
+      },
+      "playback_stream": {
+        "uri": "https://stream.crispy-tivi.test/live/101.m3u8",
+        "transport": "hls",
+        "live": true,
+        "seekable": true,
+        "resume_position_seconds": 0,
+        "source_options": [
+          {
+            "id": "primary",
+            "label": "Primary source",
+            "uri": "https://stream.crispy-tivi.test/live/101.m3u8",
+            "transport": "hls",
+            "live": true,
+            "seekable": true,
+            "resume_position_seconds": 0
+          },
+          {
+            "id": "mirror",
+            "label": "Mirror source",
+            "uri": "https://stream.crispy-tivi.test/live/101-mirror.m3u8",
+            "transport": "hls",
+            "live": true,
+            "seekable": true,
+            "resume_position_seconds": 0
+          }
+        ],
+        "quality_options": [
+          {
+            "id": "auto",
+            "label": "Auto",
+            "uri": "https://stream.crispy-tivi.test/live/101.m3u8",
+            "transport": "hls",
+            "live": true,
+            "seekable": true,
+            "resume_position_seconds": 0
+          },
+          {
+            "id": "1080p",
+            "label": "1080p",
+            "uri": "https://stream.crispy-tivi.test/live/101-1080.m3u8",
+            "transport": "hls",
+            "live": true,
+            "seekable": true,
+            "resume_position_seconds": 0
+          },
+          {
+            "id": "720p",
+            "label": "720p",
+            "uri": "https://stream.crispy-tivi.test/live/101-720.m3u8",
+            "transport": "hls",
+            "live": true,
+            "seekable": true,
+            "resume_position_seconds": 0
+          }
+        ],
+        "audio_options": [
+          {
+            "id": "auto",
+            "label": "Main mix",
+            "uri": "https://stream.crispy-tivi.test/live/101/audio-main.aac",
+            "language": "en"
+          },
+          {
+            "id": "commentary",
+            "label": "Commentary",
+            "uri": "https://stream.crispy-tivi.test/live/101/audio-commentary.aac",
+            "language": "en"
+          }
+        ],
+        "subtitle_options": [
+          {
+            "id": "off",
+            "label": "Off",
+            "uri": ""
+          },
+          {
+            "id": "en-cc",
+            "label": "English CC",
+            "uri": "https://stream.crispy-tivi.test/live/101/subtitles-en.vtt",
+            "language": "en"
+          },
+          {
+            "id": "de",
+            "label": "Deutsch",
+            "uri": "https://stream.crispy-tivi.test/live/101/subtitles-de.vtt",
+            "language": "de"
+          }
+        ]
+      },
+      "current": {
+        "title": "Midnight Bulletin",
+        "summary": "Top stories, business close, and late headlines.",
+        "start": "21:00",
+        "end": "22:00",
+        "progress_percent": 55
+      },
+      "next": {
+        "title": "Market Close",
+        "summary": "Wrap-up analysis and overnight context.",
+        "start": "22:00",
+        "end": "22:30",
+        "progress_percent": 0
+      }
+    },
+    {
+      "number": "118",
+      "name": "Arena Live",
+      "group": "Sports",
+      "state": "playing",
+      "live_edge": true,
+      "catch_up": true,
+      "archive": true,
+      "playback_source": {
+        "kind": "live_channel",
+        "source_key": "home_fiber_iptv",
+        "content_key": "118",
+        "source_label": "Home Fiber IPTV",
+        "handoff_label": "Watch live"
+      },
+      "playback_stream": {
+        "uri": "https://stream.crispy-tivi.test/live/118.m3u8",
+        "transport": "hls",
+        "live": true,
+        "seekable": true,
+        "resume_position_seconds": 0,
+        "source_options": [
+          {
+            "id": "primary",
+            "label": "Primary source",
+            "uri": "https://stream.crispy-tivi.test/live/118.m3u8",
+            "transport": "hls",
+            "live": true,
+            "seekable": true,
+            "resume_position_seconds": 0
+          },
+          {
+            "id": "mirror",
+            "label": "Mirror source",
+            "uri": "https://stream.crispy-tivi.test/live/118-mirror.m3u8",
+            "transport": "hls",
+            "live": true,
+            "seekable": true,
+            "resume_position_seconds": 0
+          }
+        ],
+        "quality_options": [
+          {
+            "id": "auto",
+            "label": "Auto",
+            "uri": "https://stream.crispy-tivi.test/live/118.m3u8",
+            "transport": "hls",
+            "live": true,
+            "seekable": true,
+            "resume_position_seconds": 0
+          },
+          {
+            "id": "1080p",
+            "label": "1080p",
+            "uri": "https://stream.crispy-tivi.test/live/118-1080.m3u8",
+            "transport": "hls",
+            "live": true,
+            "seekable": true,
+            "resume_position_seconds": 0
+          },
+          {
+            "id": "720p",
+            "label": "720p",
+            "uri": "https://stream.crispy-tivi.test/live/118-720.m3u8",
+            "transport": "hls",
+            "live": true,
+            "seekable": true,
+            "resume_position_seconds": 0
+          }
+        ],
+        "audio_options": [
+          {
+            "id": "auto",
+            "label": "Main mix",
+            "uri": "https://stream.crispy-tivi.test/live/118/audio-main.aac",
+            "language": "en"
+          },
+          {
+            "id": "commentary",
+            "label": "Commentary",
+            "uri": "https://stream.crispy-tivi.test/live/118/audio-commentary.aac",
+            "language": "en"
+          }
+        ],
+        "subtitle_options": [
+          {
+            "id": "off",
+            "label": "Off",
+            "uri": ""
+          },
+          {
+            "id": "en-cc",
+            "label": "English CC",
+            "uri": "https://stream.crispy-tivi.test/live/118/subtitles-en.vtt",
+            "language": "en"
+          },
+          {
+            "id": "de",
+            "label": "Deutsch",
+            "uri": "https://stream.crispy-tivi.test/live/118/subtitles-de.vtt",
+            "language": "de"
+          }
+        ]
+      },
+      "current": {
+        "title": "Championship Replay",
+        "summary": "A full replay block with halftime detail and tactical breakdown.",
+        "start": "21:30",
+        "end": "23:30",
+        "progress_percent": 33
+      },
+      "next": {
+        "title": "Locker Room",
+        "summary": "Postgame reaction and highlights.",
+        "start": "23:30",
+        "end": "00:00",
+        "progress_percent": 0
+      }
+    },
+    {
+      "number": "205",
+      "name": "Cinema Vault",
+      "group": "Movies",
+      "state": "browse",
+      "live_edge": false,
+      "catch_up": true,
+      "archive": true,
+      "playback_source": {
+        "kind": "live_channel",
+        "source_key": "home_fiber_iptv",
+        "content_key": "205",
+        "source_label": "Home Fiber IPTV",
+        "handoff_label": "Watch live"
+      },
+      "playback_stream": {
+        "uri": "https://stream.crispy-tivi.test/live/205.m3u8",
+        "transport": "hls",
+        "live": false,
+        "seekable": true,
+        "resume_position_seconds": 0,
+        "source_options": [
+          {
+            "id": "primary",
+            "label": "Primary source",
+            "uri": "https://stream.crispy-tivi.test/live/205.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 0
+          },
+          {
+            "id": "mirror",
+            "label": "Mirror source",
+            "uri": "https://stream.crispy-tivi.test/live/205-mirror.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 0
+          }
+        ],
+        "quality_options": [
+          {
+            "id": "auto",
+            "label": "Auto",
+            "uri": "https://stream.crispy-tivi.test/live/205.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 0
+          },
+          {
+            "id": "1080p",
+            "label": "1080p",
+            "uri": "https://stream.crispy-tivi.test/live/205-1080.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 0
+          },
+          {
+            "id": "720p",
+            "label": "720p",
+            "uri": "https://stream.crispy-tivi.test/live/205-720.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 0
+          }
+        ],
+        "audio_options": [
+          {
+            "id": "auto",
+            "label": "Main mix",
+            "uri": "https://stream.crispy-tivi.test/live/205/audio-main.aac",
+            "language": "en"
+          },
+          {
+            "id": "commentary",
+            "label": "Commentary",
+            "uri": "https://stream.crispy-tivi.test/live/205/audio-commentary.aac",
+            "language": "en"
+          }
+        ],
+        "subtitle_options": [
+          {
+            "id": "off",
+            "label": "Off",
+            "uri": ""
+          },
+          {
+            "id": "en-cc",
+            "label": "English CC",
+            "uri": "https://stream.crispy-tivi.test/live/205/subtitles-en.vtt",
+            "language": "en"
+          },
+          {
+            "id": "de",
+            "label": "Deutsch",
+            "uri": "https://stream.crispy-tivi.test/live/205/subtitles-de.vtt",
+            "language": "de"
+          }
+        ]
+      },
+      "current": {
+        "title": "Coastal Drive",
+        "summary": "A movie block tuned for late-night browsing.",
+        "start": "20:45",
+        "end": "22:35",
+        "progress_percent": 71
+      },
+      "next": {
+        "title": "Trailer Reel",
+        "summary": "A trailer-led follow-up block.",
+        "start": "22:35",
+        "end": "23:00",
+        "progress_percent": 0
+      }
+    },
+    {
+      "number": "311",
+      "name": "Nature Atlas",
+      "group": "Kids",
+      "state": "browse",
+      "live_edge": false,
+      "catch_up": false,
+      "archive": true,
+      "playback_source": {
+        "kind": "live_channel",
+        "source_key": "home_fiber_iptv",
+        "content_key": "311",
+        "source_label": "Home Fiber IPTV",
+        "handoff_label": "Watch live"
+      },
+      "playback_stream": {
+        "uri": "https://stream.crispy-tivi.test/live/311.m3u8",
+        "transport": "hls",
+        "live": false,
+        "seekable": true,
+        "resume_position_seconds": 0,
+        "source_options": [
+          {
+            "id": "primary",
+            "label": "Primary source",
+            "uri": "https://stream.crispy-tivi.test/live/311.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 0
+          },
+          {
+            "id": "mirror",
+            "label": "Mirror source",
+            "uri": "https://stream.crispy-tivi.test/live/311-mirror.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 0
+          }
+        ],
+        "quality_options": [
+          {
+            "id": "auto",
+            "label": "Auto",
+            "uri": "https://stream.crispy-tivi.test/live/311.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 0
+          },
+          {
+            "id": "1080p",
+            "label": "1080p",
+            "uri": "https://stream.crispy-tivi.test/live/311-1080.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 0
+          },
+          {
+            "id": "720p",
+            "label": "720p",
+            "uri": "https://stream.crispy-tivi.test/live/311-720.m3u8",
+            "transport": "hls",
+            "live": false,
+            "seekable": true,
+            "resume_position_seconds": 0
+          }
+        ],
+        "audio_options": [
+          {
+            "id": "auto",
+            "label": "Main mix",
+            "uri": "https://stream.crispy-tivi.test/live/311/audio-main.aac",
+            "language": "en"
+          },
+          {
+            "id": "commentary",
+            "label": "Commentary",
+            "uri": "https://stream.crispy-tivi.test/live/311/audio-commentary.aac",
+            "language": "en"
+          }
+        ],
+        "subtitle_options": [
+          {
+            "id": "off",
+            "label": "Off",
+            "uri": ""
+          },
+          {
+            "id": "en-cc",
+            "label": "English CC",
+            "uri": "https://stream.crispy-tivi.test/live/311/subtitles-en.vtt",
+            "language": "en"
+          },
+          {
+            "id": "de",
+            "label": "Deutsch",
+            "uri": "https://stream.crispy-tivi.test/live/311/subtitles-de.vtt",
+            "language": "de"
+          }
+        ]
+      },
+      "current": {
+        "title": "Winter Oceans",
+        "summary": "A slow documentary block with broad landscape framing.",
+        "start": "21:15",
+        "end": "22:15",
+        "progress_percent": 41
+      },
+      "next": {
+        "title": "Arctic Voices",
+        "summary": "Glacial wildlife and ambient field footage.",
+        "start": "22:15",
+        "end": "22:45",
+        "progress_percent": 0
+      }
+    }
+  ],
+  "guide": {
+    "title": "Live TV Guide",
+    "window_start": "21:00",
+    "window_end": "23:00",
+    "time_slots": [
+      "Now",
+      "21:30",
+      "22:00",
+      "22:30",
+      "23:00"
+    ],
+    "rows": [
+      {
+        "channel_number": "101",
+        "channel_name": "Crispy One",
+        "slots": [
+          {
+            "start": "21:00",
+            "end": "22:00",
+            "title": "Midnight Bulletin",
+            "state": "current"
+          },
+          {
+            "start": "22:00",
+            "end": "22:30",
+            "title": "Market Close",
+            "state": "next"
+          },
+          {
+            "start": "22:30",
+            "end": "23:00",
+            "title": "Nightline",
+            "state": "future"
+          },
+          {
+            "start": "23:00",
+            "end": "23:30",
+            "title": "Forecast",
+            "state": "future"
+          }
+        ]
+      },
+      {
+        "channel_number": "118",
+        "channel_name": "Arena Live",
+        "slots": [
+          {
+            "start": "21:30",
+            "end": "23:30",
+            "title": "Championship Replay",
+            "state": "current"
+          },
+          {
+            "start": "23:30",
+            "end": "00:00",
+            "title": "Locker Room",
+            "state": "next"
+          },
+          {
+            "start": "00:00",
+            "end": "00:30",
+            "title": "Highlights",
+            "state": "future"
+          },
+          {
+            "start": "00:30",
+            "end": "01:00",
+            "title": "Analysis",
+            "state": "future"
+          }
+        ]
+      },
+      {
+        "channel_number": "205",
+        "channel_name": "Cinema Vault",
+        "slots": [
+          {
+            "start": "20:45",
+            "end": "22:35",
+            "title": "Coastal Drive",
+            "state": "current"
+          },
+          {
+            "start": "22:35",
+            "end": "23:00",
+            "title": "Trailer Reel",
+            "state": "next"
+          },
+          {
+            "start": "23:00",
+            "end": "23:30",
+            "title": "Studio Cut",
+            "state": "future"
+          },
+          {
+            "start": "23:30",
+            "end": "00:00",
+            "title": "Encore",
+            "state": "future"
+          }
+        ]
+      },
+      {
+        "channel_number": "311",
+        "channel_name": "Nature Atlas",
+        "slots": [
+          {
+            "start": "21:15",
+            "end": "22:15",
+            "title": "Winter Oceans",
+            "state": "current"
+          },
+          {
+            "start": "22:15",
+            "end": "22:45",
+            "title": "Arctic Voices",
+            "state": "next"
+          },
+          {
+            "start": "22:45",
+            "end": "23:15",
+            "title": "Wild Frontiers",
+            "state": "future"
+          },
+          {
+            "start": "23:15",
+            "end": "23:45",
+            "title": "Night Shift",
+            "state": "future"
+          }
+        ]
+      }
+    ]
+  },
+  "selection": {
+    "channel_number": "118",
+    "channel_name": "Arena Live",
+    "status": "Live",
+    "live_edge": true,
+    "catch_up": true,
+    "archive": true,
+    "now": {
+      "title": "Championship Replay",
+      "summary": "A replay block with postgame analysis and on-screen highlights.",
+      "start": "21:30",
+      "end": "23:30",
+      "progress_percent": 33
+    },
+    "next": {
+      "title": "Locker Room",
+      "summary": "Reaction, interviews, and clipped highlights.",
+      "start": "23:30",
+      "end": "00:00",
+      "progress_percent": 0
+    },
+    "primary_action": "Watch live",
+    "secondary_action": "Start over",
+    "badges": [
+      "Live",
+      "Sports",
+      "Catch-up"
+    ],
+    "detail_lines": [
+      "Selected detail stays in the right lane while browse remains on the left.",
+      "EPG and playback metadata remain synchronized to the same channel selection."
+    ]
+  },
+  "notes": [
+    "The runtime snapshot stays asset-backed for now so later provider/EPG replacement can preserve shape.",
+    "Live browse and guide rows are modeled separately from legacy shell content.",
+    "The schema keeps channel, guide, and selection state typed for later Rust provider wiring."
+  ]
+}

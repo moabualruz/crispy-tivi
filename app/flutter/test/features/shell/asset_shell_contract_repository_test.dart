@@ -22,10 +22,9 @@ void main() {
 }
 ''';
 
-    final ShellContractSupport contract =
-        ShellContractSupport.fromContract(
-          ShellContract.fromJsonString(source),
-        );
+    final ShellContractSupport contract = ShellContractSupport.fromContract(
+      ShellContract.fromJsonString(source),
+    );
 
     expect(contract.startupRoute, ShellRoute.home);
     expect(contract.topLevelRoutes, mainNavigationRoutes);

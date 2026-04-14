@@ -1,9 +1,17 @@
 import 'package:crispy_tivi/features/shell/domain/shell_content.dart';
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
+import 'package:crispy_tivi/features/shell/data/personalization_runtime_repository.dart';
+import 'package:crispy_tivi/features/shell/data/source_registry_repository.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_contract.dart';
+import 'package:crispy_tivi/features/shell/domain/live_tv_runtime.dart';
+import 'package:crispy_tivi/features/shell/domain/media_runtime.dart';
+import 'package:crispy_tivi/features/shell/domain/diagnostics_runtime.dart';
+import 'package:crispy_tivi/features/shell/domain/personalization_runtime.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_navigation.dart';
 import 'package:crispy_tivi/features/shell/domain/player_session.dart';
+import 'package:crispy_tivi/features/shell/domain/search_runtime.dart';
+import 'package:crispy_tivi/features/shell/domain/source_registry_snapshot.dart';
 import 'package:crispy_tivi/features/shell/presentation/routes/home_view.dart';
 import 'package:crispy_tivi/features/shell/presentation/routes/live_tv_view.dart';
 import 'package:crispy_tivi/features/shell/presentation/routes/media_view.dart';
@@ -16,10 +24,30 @@ import 'package:crispy_tivi/features/shell/presentation/widgets/shell_top_bar.da
 import 'package:flutter/material.dart';
 
 class ShellPage extends StatefulWidget {
-  const ShellPage({required this.contract, required this.content, super.key});
+  const ShellPage({
+    required this.contract,
+    required this.content,
+    required this.sourceRegistryRepository,
+    required this.personalizationRepository,
+    this.sourceRegistry = const SourceRegistrySnapshot.empty(),
+    this.liveTvRuntime = const LiveTvRuntimeSnapshot.empty(),
+    this.mediaRuntime = const MediaRuntimeSnapshot.empty(),
+    this.searchRuntime = const SearchRuntimeSnapshot.empty(),
+    this.personalizationRuntime = const PersonalizationRuntimeSnapshot.empty(),
+    this.diagnosticsRuntime = const DiagnosticsRuntimeSnapshot.empty(),
+    super.key,
+  });
 
   final ShellContractSupport contract;
   final ShellContentSnapshot content;
+  final SourceRegistrySnapshot sourceRegistry;
+  final LiveTvRuntimeSnapshot liveTvRuntime;
+  final MediaRuntimeSnapshot mediaRuntime;
+  final SearchRuntimeSnapshot searchRuntime;
+  final PersonalizationRuntimeSnapshot personalizationRuntime;
+  final DiagnosticsRuntimeSnapshot diagnosticsRuntime;
+  final SourceRegistryRepository sourceRegistryRepository;
+  final PersonalizationRuntimeRepository personalizationRepository;
 
   @override
   State<ShellPage> createState() => _ShellPageState();
@@ -37,6 +65,14 @@ class _ShellPageState extends State<ShellPage> {
   );
   late final ShellViewModel _viewModel = ShellViewModel(
     contract: widget.contract,
+    sourceRegistry: widget.sourceRegistry,
+    liveTvRuntime: widget.liveTvRuntime,
+    mediaRuntime: widget.mediaRuntime,
+    searchRuntime: widget.searchRuntime,
+    diagnosticsRuntime: widget.diagnosticsRuntime,
+    sourceRegistryRepository: widget.sourceRegistryRepository,
+    personalizationRuntime: widget.personalizationRuntime,
+    personalizationRepository: widget.personalizationRepository,
   );
 
   @override
@@ -172,6 +208,7 @@ class _ShellPageState extends State<ShellPage> {
                   Positioned.fill(
                     child: PlayerView(
                       session: session,
+                      playbackController: _viewModel.playerPlaybackController,
                       chromeState: _viewModel.playerChromeState,
                       activeChooser: _viewModel.activePlayerChooser,
                       onBack: _viewModel.unwindPlayer,
@@ -267,14 +304,17 @@ class _ShellPageState extends State<ShellPage> {
       case ShellRoute.home:
         return HomeView(
           quickAccessOrder: _viewModel.contract.homeQuickAccess,
-          content: widget.content,
+          hero: _viewModel.homeHeroFeature,
+          liveNow: _viewModel.homeLiveNowItems,
+          continueWatching: _viewModel.homeContinueWatchingItems,
+          hasConfiguredProviders:
+              _viewModel.sourceRegistry.configuredProviders.isNotEmpty,
         );
       case ShellRoute.liveTv:
         return LiveTvView(
-          content: widget.content,
-          availableGroups: _viewModel.contract.liveTvGroups,
+          runtime: _viewModel.liveTvRuntime,
           panel: _viewModel.liveTvPanel,
-          group: _viewModel.liveTvGroup,
+          groupId: _viewModel.liveTvGroupId,
           focusedChannelIndex: _viewModel.liveTvFocusedChannelIndex,
           playingChannelIndex: _viewModel.liveTvPlayingChannelIndex,
           onSelectGroup: _viewModel.selectLiveTvGroup,
@@ -284,37 +324,46 @@ class _ShellPageState extends State<ShellPage> {
         );
       case ShellRoute.media:
         return MediaView(
-          content: widget.content,
-          availableScopes: _viewModel.contract.mediaScopes,
-          panel: _viewModel.mediaPanel,
-          scope: _viewModel.mediaScope,
+          state: _viewModel.mediaPresentation,
+          runtime: _viewModel.mediaRuntime,
           onSelectScope: _viewModel.selectMediaScope,
-          seriesSeasonIndex: _viewModel.seriesSeasonIndex,
-          seriesEpisodeIndex: _viewModel.seriesEpisodeIndex,
-          launchedSeriesEpisodeIndex: _viewModel.seriesLaunchedEpisodeIndex,
           onSelectSeriesSeasonIndex: _viewModel.selectSeriesSeasonIndex,
           onSelectSeriesEpisodeIndex: _viewModel.selectSeriesEpisodeIndex,
           onLaunchSeriesEpisode: _viewModel.launchSeriesEpisode,
           onLaunchPlayer: _viewModel.launchPlayer,
+          onToggleWatchlist: _viewModel.toggleMediaWatchlist,
+          watchlistContentKeys:
+              _viewModel.personalizationRuntime.favoriteMediaKeys,
         );
       case ShellRoute.search:
-        return SearchView(content: widget.content);
+        return SearchView(state: _viewModel.searchPresentation);
       case ShellRoute.settings:
         return SettingsView(
           panel: _viewModel.settingsPanel,
-          content: widget.content,
+          generalSettings: _viewModel.generalSettingsItems,
+          playbackSettings: _viewModel.playbackSettingsItems,
+          appearanceSettings: _viewModel.appearanceSettingsItems,
+          systemSettings: _viewModel.systemSettingsItems,
+          diagnosticsRuntime: widget.diagnosticsRuntime,
+          sourceRegistry: _viewModel.sourceRegistry,
           selectedSourceIndex: _viewModel.selectedSourceIndex,
+          selectedProviderType: _viewModel.selectedProviderType,
           sourceWizardActive: _viewModel.sourceWizardActive,
           sourceWizardStep: _viewModel.sourceWizardStep,
+          sourceWizardFieldValues: _viewModel.sourceWizardFieldValues,
           searchQuery: _viewModel.settingsSearchQuery,
           highlightedLeaf: _viewModel.highlightedSettingsLeaf,
           onUpdateSearchQuery: _viewModel.updateSettingsSearchQuery,
           onClearSearch: _viewModel.clearSettingsSearch,
           onOpenSettingsLeaf: _viewModel.openSettingsLeaf,
           onSelectSource: _viewModel.selectSourceIndex,
+          onSelectProviderType: _viewModel.selectSourceProviderType,
           onStartAddSource: _viewModel.startAddSourceWizard,
+          onStartEditSource: _viewModel.startEditSourceWizard,
           onStartReconnect: _viewModel.startReconnectWizard,
+          onStartImportSource: _viewModel.startImportWizard,
           onSelectWizardStep: _viewModel.selectSourceWizardStep,
+          onUpdateWizardField: _viewModel.updateSourceWizardField,
           onAdvanceWizard: _viewModel.advanceSourceWizard,
           onRetreatWizard: _viewModel.retreatSourceWizard,
         );

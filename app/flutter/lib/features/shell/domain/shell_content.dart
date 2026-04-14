@@ -26,6 +26,41 @@ class ShellContentSnapshot {
     required this.sourceWizardSteps,
   });
 
+  const ShellContentSnapshot.empty()
+    : homeHero = HeroFeature.empty,
+      continueWatching = const <ShelfItem>[],
+      liveNow = const <ShelfItem>[],
+      movieHero = HeroFeature.empty,
+      seriesHero = HeroFeature.empty,
+      seriesDetail = SeriesDetailContent.empty,
+      topFilms = const <ShelfItem>[],
+      topSeries = const <ShelfItem>[],
+      liveTvChannels = const <ChannelEntry>[],
+      guideRows = const <List<String>>[],
+      liveTvBrowse = const LiveTvBrowseContent(
+        summaryTitle: '',
+        summaryBody: '',
+        quickPlayLabel: '',
+        quickPlayHint: '',
+        selectedChannelNumber: '',
+        channelDetails: <LiveTvChannelDetail>[],
+      ),
+      liveTvGuide = const LiveTvGuideContent(
+        summaryTitle: '',
+        summaryBody: '',
+        timeSlots: <String>[],
+        selectedChannelNumber: '',
+        focusedSlot: '',
+        rows: <LiveTvGuideRowDetail>[],
+      ),
+      searchGroups = const <SearchResultGroup>[],
+      generalSettings = const <SettingsItem>[],
+      playbackSettings = const <SettingsItem>[],
+      appearanceSettings = const <SettingsItem>[],
+      systemSettings = const <SettingsItem>[],
+      sourceHealthItems = const <SourceHealthItem>[],
+      sourceWizardSteps = const <SourceWizardStepContent>[];
+
   factory ShellContentSnapshot.fromJsonString(String source) {
     final Object? decoded = jsonDecode(source);
     if (decoded is! Map<String, dynamic>) {
@@ -219,7 +254,8 @@ SeriesDetailContent _fallbackSeriesDetailContent({
       ),
       SeriesSeasonDetail(
         label: 'Season 2',
-        summary: 'Continuation season with playback ready for the next episode.',
+        summary:
+            'Continuation season with playback ready for the next episode.',
         episodes: List<SeriesEpisodeDetail>.unmodifiable(
           episodeSet
               .map(

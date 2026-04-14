@@ -2,40 +2,62 @@ import 'package:crispy_tivi/core/theme/crispy_shell_controls.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_icons.dart';
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
-import 'package:crispy_tivi/features/shell/domain/shell_content.dart';
+import 'package:crispy_tivi/features/shell/domain/diagnostics_runtime.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_models.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_navigation.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/settings_rows.dart';
+import 'package:crispy_tivi/features/shell/presentation/view_state/source_provider_registry.dart';
+import 'package:crispy_tivi/features/shell/presentation/view_state/source_wizard_form.dart';
+import 'package:crispy_tivi/features/shell/presentation/view_state/source_wizard_form_projection.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/shell_controls.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/shell_iconography.dart';
+import 'package:crispy_tivi/features/shell/presentation/view_model/shell_view_model.dart';
 import 'package:flutter/material.dart';
 
 class SettingsView extends StatefulWidget {
   const SettingsView({
     required this.panel,
-    required this.content,
+    required this.generalSettings,
+    required this.playbackSettings,
+    required this.appearanceSettings,
+    required this.systemSettings,
+    required this.diagnosticsRuntime,
+    required this.sourceRegistry,
     required this.selectedSourceIndex,
+    required this.selectedProviderType,
     required this.sourceWizardActive,
     required this.sourceWizardStep,
+    required this.sourceWizardFieldValues,
     required this.searchQuery,
     required this.highlightedLeaf,
     required this.onUpdateSearchQuery,
     required this.onClearSearch,
     required this.onOpenSettingsLeaf,
     required this.onSelectSource,
+    required this.onSelectProviderType,
     required this.onStartAddSource,
+    required this.onStartEditSource,
     required this.onStartReconnect,
+    required this.onStartImportSource,
     required this.onSelectWizardStep,
+    required this.onUpdateWizardField,
     required this.onAdvanceWizard,
     required this.onRetreatWizard,
     super.key,
   });
 
   final SettingsPanel panel;
-  final ShellContentSnapshot content;
+  final List<SettingsItem> generalSettings;
+  final List<SettingsItem> playbackSettings;
+  final List<SettingsItem> appearanceSettings;
+  final List<SettingsItem> systemSettings;
+  final DiagnosticsRuntimeSnapshot diagnosticsRuntime;
+  final SourceProviderRegistry sourceRegistry;
   final int selectedSourceIndex;
+  final SourceProviderKind selectedProviderType;
   final bool sourceWizardActive;
   final SourceWizardStep sourceWizardStep;
+  final Map<String, String> sourceWizardFieldValues;
   final String searchQuery;
   final String? highlightedLeaf;
   final ValueChanged<String> onUpdateSearchQuery;
@@ -47,9 +69,13 @@ class SettingsView extends StatefulWidget {
   })
   onOpenSettingsLeaf;
   final ValueChanged<int> onSelectSource;
+  final ValueChanged<SourceProviderKind> onSelectProviderType;
   final VoidCallback onStartAddSource;
+  final VoidCallback onStartEditSource;
   final VoidCallback onStartReconnect;
+  final VoidCallback onStartImportSource;
   final ValueChanged<SourceWizardStep> onSelectWizardStep;
+  final void Function(String fieldLabel, String value) onUpdateWizardField;
   final VoidCallback onAdvanceWizard;
   final VoidCallback onRetreatWizard;
 
@@ -86,7 +112,14 @@ class _SettingsViewState extends State<SettingsView> {
     final List<_SettingsSearchMatch> matches =
         query.isEmpty
             ? const <_SettingsSearchMatch>[]
-            : _findMatches(widget.content, query);
+            : _findMatches(
+              generalSettings: widget.generalSettings,
+              playbackSettings: widget.playbackSettings,
+              appearanceSettings: widget.appearanceSettings,
+              systemSettings: widget.systemSettings,
+              sourceRegistry: widget.sourceRegistry,
+              query: query,
+            );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,7 +163,11 @@ class _SettingsViewState extends State<SettingsView> {
 
   Widget _buildOpenedLeaf(String query) {
     final _SettingsSearchMatch? activeMatch = _matchForOpenedLeaf(
-      content: widget.content,
+      generalSettings: widget.generalSettings,
+      playbackSettings: widget.playbackSettings,
+      appearanceSettings: widget.appearanceSettings,
+      systemSettings: widget.systemSettings,
+      sourceRegistry: widget.sourceRegistry,
       panel: widget.panel,
       highlightedLeaf: widget.highlightedLeaf,
       selectedSourceIndex: widget.selectedSourceIndex,
@@ -164,7 +201,7 @@ class _SettingsViewState extends State<SettingsView> {
           description: description,
           matchDescription: matchDescription,
           child: SettingsRows(
-            items: widget.content.generalSettings,
+            items: widget.generalSettings,
             sectionLabel: 'General settings',
             sectionSummary:
                 'Keep launch and recommendation behavior inside the utility lane.',
@@ -178,7 +215,7 @@ class _SettingsViewState extends State<SettingsView> {
           description: description,
           matchDescription: matchDescription,
           child: SettingsRows(
-            items: widget.content.playbackSettings,
+            items: widget.playbackSettings,
             sectionLabel: 'Playback settings',
             sectionSummary:
                 'Playback defaults should be calm, explicit, and easy to unwind.',
@@ -190,16 +227,22 @@ class _SettingsViewState extends State<SettingsView> {
           title: title,
           description: description,
           matchDescription: matchDescription,
-          sources: widget.content.sourceHealthItems,
+          sourceRegistry: widget.sourceRegistry,
           selectedSourceIndex: forcedSourceIndex ?? widget.selectedSourceIndex,
+          selectedProviderType: widget.selectedProviderType,
           wizardActive:
               widget.sourceWizardActive && highlightedItemIndex == null,
-          wizardSteps: widget.content.sourceWizardSteps,
+          wizardSteps: widget.sourceRegistry.wizardSteps,
           activeWizardStep: widget.sourceWizardStep,
+          sourceWizardFieldValues: widget.sourceWizardFieldValues,
           onSelectSource: widget.onSelectSource,
+          onSelectProviderType: widget.onSelectProviderType,
           onStartAddSource: widget.onStartAddSource,
+          onStartEditSource: widget.onStartEditSource,
           onStartReconnect: widget.onStartReconnect,
+          onStartImportSource: widget.onStartImportSource,
           onSelectWizardStep: widget.onSelectWizardStep,
+          onUpdateWizardField: widget.onUpdateWizardField,
           onAdvanceWizard: widget.onAdvanceWizard,
           onRetreatWizard: widget.onRetreatWizard,
         );
@@ -210,7 +253,7 @@ class _SettingsViewState extends State<SettingsView> {
           description: description,
           matchDescription: matchDescription,
           child: SettingsRows(
-            items: widget.content.appearanceSettings,
+            items: widget.appearanceSettings,
             sectionLabel: 'Appearance settings',
             sectionSummary:
                 'Keep readability, density, and surface treatment in one place.',
@@ -223,15 +266,191 @@ class _SettingsViewState extends State<SettingsView> {
           title: title,
           description: description,
           matchDescription: matchDescription,
-          child: SettingsRows(
-            items: widget.content.systemSettings,
-            sectionLabel: 'System settings',
-            sectionSummary:
-                'System controls stay grouped so diagnostics never feel detached.',
+          child: _SystemSettingsPanel(
+            items: widget.systemSettings,
+            diagnostics: widget.diagnosticsRuntime,
             highlightedItemIndex: highlightedItemIndex,
           ),
         );
     }
+  }
+}
+
+class _SystemSettingsPanel extends StatelessWidget {
+  const _SystemSettingsPanel({
+    required this.items,
+    required this.diagnostics,
+    this.highlightedItemIndex,
+  });
+
+  final List<SettingsItem> items;
+  final DiagnosticsRuntimeSnapshot diagnostics;
+  final int? highlightedItemIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        SettingsRows(
+          items: items,
+          sectionLabel: 'System settings',
+          sectionSummary:
+              'System controls stay grouped so diagnostics never feel detached.',
+          highlightedItemIndex: highlightedItemIndex,
+        ),
+        const SizedBox(height: CrispyOverhaulTokens.large),
+        DecoratedBox(
+          decoration: CrispyShellRoles.panelDecoration(),
+          child: Padding(
+            padding: const EdgeInsets.all(CrispyOverhaulTokens.large),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const ShellIconPlate(
+                      icon: Icons.health_and_safety_outlined,
+                      role: ShellIconRole.panel,
+                    ),
+                    const SizedBox(width: CrispyOverhaulTokens.medium),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            'Diagnostics',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: CrispyOverhaulTokens.compact),
+                          Text(
+                            diagnostics.validationSummary,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium?.copyWith(
+                              color: CrispyOverhaulTokens.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: CrispyOverhaulTokens.medium),
+                Wrap(
+                  spacing: CrispyOverhaulTokens.small,
+                  runSpacing: CrispyOverhaulTokens.small,
+                  children: <Widget>[
+                    _DiagnosticsBadge(
+                      label:
+                          diagnostics.ffprobeAvailable
+                              ? 'ffprobe ready'
+                              : 'ffprobe unavailable',
+                    ),
+                    _DiagnosticsBadge(
+                      label:
+                          diagnostics.ffmpegAvailable
+                              ? 'ffmpeg ready'
+                              : 'ffmpeg unavailable',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: CrispyOverhaulTokens.large),
+                ...diagnostics.reports.map(
+                  (DiagnosticsReport report) => Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: CrispyOverhaulTokens.medium,
+                    ),
+                    child: _DiagnosticsCard(report: report),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DiagnosticsBadge extends StatelessWidget {
+  const _DiagnosticsBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: CrispyShellRoles.insetPanelDecoration(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: CrispyOverhaulTokens.medium,
+          vertical: CrispyOverhaulTokens.small,
+        ),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: CrispyOverhaulTokens.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DiagnosticsCard extends StatelessWidget {
+  const _DiagnosticsCard({required this.report});
+
+  final DiagnosticsReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: CrispyShellRoles.insetPanelDecoration(),
+      child: Padding(
+        padding: const EdgeInsets.all(CrispyOverhaulTokens.medium),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              report.streamTitle,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: CrispyOverhaulTokens.compact),
+            Text(
+              '${report.sourceName} · ${report.category} · ${report.resolutionLabel}',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: CrispyOverhaulTokens.textSecondary,
+              ),
+            ),
+            const SizedBox(height: CrispyOverhaulTokens.small),
+            ...report.detailLines.map(
+              (String line) => Padding(
+                padding: const EdgeInsets.only(
+                  bottom: CrispyOverhaulTokens.compact,
+                ),
+                child: Text(
+                  line,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: CrispyOverhaulTokens.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+            if (report.mismatchWarnings.isNotEmpty) ...<Widget>[
+              const SizedBox(height: CrispyOverhaulTokens.compact),
+              Text(
+                report.mismatchWarnings.join(' · '),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: CrispyOverhaulTokens.semanticWarning,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -413,8 +632,7 @@ class _SettingsSearchResults extends StatelessWidget {
                             children: <Widget>[
                               Text(
                                 match.displayLabel,
-                                style:
-                                    Theme.of(context).textTheme.titleMedium,
+                                style: Theme.of(context).textTheme.titleMedium,
                               ),
                               const SizedBox(
                                 height: CrispyOverhaulTokens.compact,
@@ -540,15 +758,21 @@ class _SettingsSourceLane extends StatelessWidget {
     required this.title,
     required this.description,
     required this.matchDescription,
-    required this.sources,
+    required this.sourceRegistry,
     required this.selectedSourceIndex,
+    required this.selectedProviderType,
     required this.wizardActive,
     required this.wizardSteps,
     required this.activeWizardStep,
+    required this.sourceWizardFieldValues,
     required this.onSelectSource,
+    required this.onSelectProviderType,
     required this.onStartAddSource,
+    required this.onStartEditSource,
     required this.onStartReconnect,
+    required this.onStartImportSource,
     required this.onSelectWizardStep,
+    required this.onUpdateWizardField,
     required this.onAdvanceWizard,
     required this.onRetreatWizard,
   });
@@ -556,25 +780,43 @@ class _SettingsSourceLane extends StatelessWidget {
   final String title;
   final String description;
   final String matchDescription;
-  final List<SourceHealthItem> sources;
+  final SourceProviderRegistry sourceRegistry;
   final int selectedSourceIndex;
+  final SourceProviderKind selectedProviderType;
   final bool wizardActive;
   final List<SourceWizardStepContent> wizardSteps;
   final SourceWizardStep activeWizardStep;
+  final Map<String, String> sourceWizardFieldValues;
   final ValueChanged<int> onSelectSource;
+  final ValueChanged<SourceProviderKind> onSelectProviderType;
   final VoidCallback onStartAddSource;
+  final VoidCallback onStartEditSource;
   final VoidCallback onStartReconnect;
+  final VoidCallback onStartImportSource;
   final ValueChanged<SourceWizardStep> onSelectWizardStep;
+  final void Function(String fieldLabel, String value) onUpdateWizardField;
   final VoidCallback onAdvanceWizard;
   final VoidCallback onRetreatWizard;
 
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
-    final SourceHealthItem selectedSource = sources[selectedSourceIndex];
-    final SourceWizardStepContent activeStep = wizardSteps.firstWhere(
-      (SourceWizardStepContent item) => item.step == activeWizardStep,
-    );
+    final bool hasProviderCatalog =
+        sourceRegistry.providerTypes.isNotEmpty && wizardSteps.isNotEmpty;
+    final SourceProviderEntry? selectedProvider =
+        sourceRegistry.configuredProviders.isEmpty
+            ? null
+            : sourceRegistry.configuredProviderAt(selectedSourceIndex);
+    final SourceProviderEntry? selectedProviderTypeEntry =
+        hasProviderCatalog
+            ? sourceRegistry.providerType(selectedProviderType)
+            : null;
+    final SourceWizardStepContent? activeStep =
+        hasProviderCatalog
+            ? wizardSteps.firstWhere(
+              (SourceWizardStepContent item) => item.step == activeWizardStep,
+            )
+            : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -613,14 +855,14 @@ class _SettingsSourceLane extends StatelessWidget {
               SizedBox(
                 width: 300,
                 child: _SettingsSourceListPane(
-                  sources: sources,
+                  sourceRegistry: sourceRegistry,
                   selectedSourceIndex: selectedSourceIndex,
                   onSelectSource: onSelectSource,
                   onStartAddSource: onStartAddSource,
                 ),
               ),
               const SizedBox(width: CrispyOverhaulTokens.medium),
-              if (wizardActive) ...<Widget>[
+              if (wizardActive && hasProviderCatalog) ...<Widget>[
                 SizedBox(
                   width: 240,
                   child: _SettingsWizardRail(
@@ -633,16 +875,29 @@ class _SettingsSourceLane extends StatelessWidget {
               ],
               Expanded(
                 child:
-                    wizardActive
+                    wizardActive && hasProviderCatalog
                         ? _SettingsWizardPane(
-                          step: activeStep,
+                          step: activeStep!,
+                          providerTypes: sourceRegistry.providerTypes,
+                          selectedProviderType: selectedProviderType,
+                          fieldValues: sourceWizardFieldValues,
+                          onSelectProviderType: onSelectProviderType,
+                          onUpdateField: onUpdateWizardField,
                           onAdvance: onAdvanceWizard,
                           onRetreat: onRetreatWizard,
                         )
-                        : _SettingsSourceDetailPane(
-                          source: selectedSource,
-                          onStartReconnect: onStartReconnect,
+                        : wizardActive
+                        ? const _SettingsSourceCatalogEmpty()
+                        : selectedProvider == null
+                        ? _SettingsEmptySourceDetailPane(
+                          provider: selectedProviderTypeEntry,
                           onStartAddSource: onStartAddSource,
+                        )
+                        : _SettingsSourceDetailPane(
+                          provider: selectedProvider,
+                          onStartReconnect: onStartReconnect,
+                          onStartEditSource: onStartEditSource,
+                          onStartImportSource: onStartImportSource,
                         ),
               ),
             ],
@@ -655,13 +910,13 @@ class _SettingsSourceLane extends StatelessWidget {
 
 class _SettingsSourceListPane extends StatelessWidget {
   const _SettingsSourceListPane({
-    required this.sources,
+    required this.sourceRegistry,
     required this.selectedSourceIndex,
     required this.onSelectSource,
     required this.onStartAddSource,
   });
 
-  final List<SourceHealthItem> sources;
+  final SourceProviderRegistry sourceRegistry;
   final int selectedSourceIndex;
   final ValueChanged<int> onSelectSource;
   final VoidCallback onStartAddSource;
@@ -684,7 +939,7 @@ class _SettingsSourceListPane extends StatelessWidget {
                 const SizedBox(width: CrispyOverhaulTokens.small),
                 Expanded(
                   child: Text(
-                    'Connected sources',
+                    'Provider registry',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleLarge,
@@ -694,7 +949,7 @@ class _SettingsSourceListPane extends StatelessWidget {
             ),
             const SizedBox(height: CrispyOverhaulTokens.compact),
             Text(
-              '${sources.length} active sources',
+              '${sourceRegistry.configuredProviders.length} active providers',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: CrispyOverhaulTokens.textSecondary,
               ),
@@ -702,7 +957,7 @@ class _SettingsSourceListPane extends StatelessWidget {
             const SizedBox(height: CrispyOverhaulTokens.small),
             ShellControlButton(
               controlKey: const Key('sources-add-button'),
-              label: 'Add source',
+              label: 'Add provider',
               icon: Icons.add_link_outlined,
               onPressed: onStartAddSource,
               controlRole: ShellControlRole.action,
@@ -716,15 +971,15 @@ class _SettingsSourceListPane extends StatelessWidget {
                 children: <Widget>[
                   for (
                     int index = 0;
-                    index < sources.length;
+                    index < sourceRegistry.configuredProviders.length;
                     index += 1
                   ) ...<Widget>[
                     _SettingsSourceListItem(
-                      source: sources[index],
+                      provider: sourceRegistry.configuredProviderAt(index),
                       selected: selectedSourceIndex == index,
                       onSelect: () => onSelectSource(index),
                     ),
-                    if (index < sources.length - 1)
+                    if (index < sourceRegistry.configuredProviders.length - 1)
                       const SizedBox(height: CrispyOverhaulTokens.small),
                   ],
                 ],
@@ -739,19 +994,19 @@ class _SettingsSourceListPane extends StatelessWidget {
 
 class _SettingsSourceListItem extends StatelessWidget {
   const _SettingsSourceListItem({
-    required this.source,
+    required this.provider,
     required this.selected,
     required this.onSelect,
   });
 
-  final SourceHealthItem source;
+  final SourceProviderEntry provider;
   final bool selected;
   final VoidCallback onSelect;
 
   @override
   Widget build(BuildContext context) {
     return ShellControlSurface(
-      controlKey: Key('source-item-${source.name}'),
+      controlKey: Key('source-item-${provider.name}'),
       onPressed: onSelect,
       controlRole: ShellControlRole.selector,
       selected: selected,
@@ -761,7 +1016,7 @@ class _SettingsSourceListItem extends StatelessWidget {
           Row(
             children: <Widget>[
               ShellIconPlate(
-                icon: CrispyShellIcons.settingsStatus(source.status),
+                icon: _providerKindIcon(provider.providerKind),
                 role: ShellIconRole.status,
                 color:
                     selected
@@ -771,7 +1026,7 @@ class _SettingsSourceListItem extends StatelessWidget {
               const SizedBox(width: CrispyOverhaulTokens.small),
               Expanded(
                 child: Text(
-                  source.name,
+                  provider.name,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color:
                         selected
@@ -780,26 +1035,39 @@ class _SettingsSourceListItem extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(
-                source.status,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color:
-                      selected
-                          ? CrispyOverhaulTokens.navSelectedText
-                          : CrispyOverhaulTokens.textSecondary,
-                ),
+              _StateLabel(
+                label: provider.healthState.label,
+                state: provider.healthState,
+                selected: selected,
               ),
             ],
           ),
           const SizedBox(height: CrispyOverhaulTokens.compact),
           Text(
-            source.summary,
+            provider.summary,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color:
                   selected
                       ? CrispyOverhaulTokens.navSelectedText
                       : CrispyOverhaulTokens.textSecondary,
             ),
+          ),
+          const SizedBox(height: CrispyOverhaulTokens.small),
+          Wrap(
+            spacing: CrispyOverhaulTokens.small,
+            runSpacing: CrispyOverhaulTokens.small,
+            children: <Widget>[
+              _StateLabel(
+                label: provider.authState.label,
+                state: provider.authState,
+                selected: selected,
+              ),
+              _StateLabel(
+                label: provider.importState.label,
+                state: provider.importState,
+                selected: selected,
+              ),
+            ],
           ),
         ],
       ),
@@ -869,16 +1137,32 @@ class _SettingsWizardRail extends StatelessWidget {
 class _SettingsWizardPane extends StatelessWidget {
   const _SettingsWizardPane({
     required this.step,
+    required this.providerTypes,
+    required this.selectedProviderType,
+    required this.fieldValues,
+    required this.onSelectProviderType,
+    required this.onUpdateField,
     required this.onAdvance,
     required this.onRetreat,
   });
 
   final SourceWizardStepContent step;
+  final List<SourceProviderEntry> providerTypes;
+  final SourceProviderKind selectedProviderType;
+  final Map<String, String> fieldValues;
+  final ValueChanged<SourceProviderKind> onSelectProviderType;
+  final void Function(String fieldLabel, String value) onUpdateField;
   final VoidCallback onAdvance;
   final VoidCallback onRetreat;
 
   @override
   Widget build(BuildContext context) {
+    final List<SourceWizardFieldSpec> fields = buildSourceWizardFieldSpecs(
+      providerTypes: providerTypes,
+      selectedProviderKind: selectedProviderType,
+      step: step.step,
+      values: fieldValues,
+    );
     return DecoratedBox(
       decoration: CrispyShellRoles.insetPanelDecoration(),
       child: Padding(
@@ -926,10 +1210,16 @@ class _SettingsWizardPane extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      for (final String field in step.fieldLabels) ...<Widget>[
-                        _DetailField(
-                          label: field,
-                          value: 'Enter ${field.toLowerCase()}',
+                      for (final SourceWizardFieldSpec field
+                          in fields) ...<Widget>[
+                        _WizardField(
+                          field: field,
+                          initialValue: fieldValues[field.key] ?? '',
+                          onChanged: (String value) {
+                            onUpdateField(field.key, value);
+                          },
+                          onSelectProviderType: onSelectProviderType,
+                          selectedProviderType: selectedProviderType,
                         ),
                         const SizedBox(height: CrispyOverhaulTokens.small),
                       ],
@@ -977,16 +1267,216 @@ class _SettingsWizardPane extends StatelessWidget {
   }
 }
 
-class _SettingsSourceDetailPane extends StatelessWidget {
-  const _SettingsSourceDetailPane({
-    required this.source,
-    required this.onStartReconnect,
+class _WizardField extends StatefulWidget {
+  const _WizardField({
+    required this.field,
+    required this.initialValue,
+    required this.onChanged,
+    required this.onSelectProviderType,
+    required this.selectedProviderType,
+  });
+
+  final SourceWizardFieldSpec field;
+  final String initialValue;
+  final ValueChanged<String> onChanged;
+  final ValueChanged<SourceProviderKind> onSelectProviderType;
+  final SourceProviderKind selectedProviderType;
+
+  @override
+  State<_WizardField> createState() => _WizardFieldState();
+}
+
+class _WizardFieldState extends State<_WizardField> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialValue,
+  );
+
+  @override
+  void didUpdateWidget(covariant _WizardField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialValue != widget.initialValue &&
+        _controller.text != widget.initialValue) {
+      _controller.text = widget.initialValue;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle? labelStyle = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.copyWith(color: CrispyOverhaulTokens.textMuted);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(widget.field.label, style: labelStyle),
+        const SizedBox(height: CrispyOverhaulTokens.compact),
+        switch (widget.field.kind) {
+          SourceWizardFieldKind.choice => DropdownButtonFormField<String>(
+            key: Key('source-wizard-field-${widget.field.key}'),
+            initialValue:
+                widget.field.key == 'source_type'
+                    ? widget.selectedProviderType.name
+                    : (widget.initialValue.isEmpty
+                        ? null
+                        : widget.initialValue),
+            items: widget.field.options
+                .map(
+                  (SourceWizardFieldOption option) => DropdownMenuItem<String>(
+                    value: option.value,
+                    child: Text(option.label),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: (String? value) {
+              if (value == null) {
+                return;
+              }
+              if (widget.field.key == 'source_type') {
+                widget.onSelectProviderType(
+                  SourceProviderKind.values.firstWhere(
+                    (SourceProviderKind kind) => kind.name == value,
+                  ),
+                );
+              }
+              widget.onChanged(value);
+            },
+            decoration: InputDecoration(hintText: widget.field.placeholder),
+          ),
+          SourceWizardFieldKind.readonly => DecoratedBox(
+            decoration: CrispyShellRoles.inputFieldDecoration(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: CrispyOverhaulTokens.large,
+                vertical: CrispyOverhaulTokens.medium,
+              ),
+              child: Text(
+                widget.field.readOnlyValue ?? 'Not available yet',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: CrispyOverhaulTokens.textSecondary,
+                ),
+              ),
+            ),
+          ),
+          SourceWizardFieldKind.multiline => TextField(
+            key: Key('source-wizard-field-${widget.field.key}'),
+            controller: _controller,
+            onChanged: widget.onChanged,
+            maxLines: 3,
+            decoration: InputDecoration(hintText: widget.field.placeholder),
+          ),
+          _ => TextField(
+            key: Key('source-wizard-field-${widget.field.key}'),
+            controller: _controller,
+            onChanged: widget.onChanged,
+            obscureText: widget.field.kind == SourceWizardFieldKind.password,
+            keyboardType:
+                widget.field.kind == SourceWizardFieldKind.url
+                    ? TextInputType.url
+                    : TextInputType.text,
+            decoration: InputDecoration(hintText: widget.field.placeholder),
+          ),
+        },
+      ],
+    );
+  }
+}
+
+class _SettingsEmptySourceDetailPane extends StatelessWidget {
+  const _SettingsEmptySourceDetailPane({
+    required this.provider,
     required this.onStartAddSource,
   });
 
-  final SourceHealthItem source;
-  final VoidCallback onStartReconnect;
+  final SourceProviderEntry? provider;
   final VoidCallback onStartAddSource;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: CrispyShellRoles.insetPanelDecoration(),
+      child: Padding(
+        padding: const EdgeInsets.all(CrispyOverhaulTokens.medium),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'No providers configured yet',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: CrispyOverhaulTokens.small),
+            Text(
+              provider == null
+                  ? 'The provider catalog is still loading. Add provider becomes available as soon as catalog metadata is present.'
+                  : 'Start with ${provider!.name}. The wizard now uses the retained provider catalog even before any real source exists.',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: CrispyOverhaulTokens.textSecondary,
+              ),
+            ),
+            const SizedBox(height: CrispyOverhaulTokens.large),
+            ShellControlButton(
+              controlKey: const Key('sources-empty-add-button'),
+              label: 'Add provider',
+              icon: Icons.add_link_outlined,
+              onPressed: onStartAddSource,
+              controlRole: ShellControlRole.action,
+              presentation: ShellControlPresentation.iconAndText,
+              emphasis: true,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsSourceCatalogEmpty extends StatelessWidget {
+  const _SettingsSourceCatalogEmpty();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: CrispyShellRoles.insetPanelDecoration(),
+      child: Padding(
+        padding: const EdgeInsets.all(CrispyOverhaulTokens.medium),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'Provider catalog unavailable',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: CrispyOverhaulTokens.small),
+            Text(
+              'Source setup cannot continue until provider catalog metadata is available on the active runtime path.',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: CrispyOverhaulTokens.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsSourceDetailPane extends StatelessWidget {
+  const _SettingsSourceDetailPane({
+    required this.provider,
+    required this.onStartReconnect,
+    required this.onStartEditSource,
+    required this.onStartImportSource,
+  });
+
+  final SourceProviderEntry provider;
+  final VoidCallback onStartReconnect;
+  final VoidCallback onStartEditSource;
+  final VoidCallback onStartImportSource;
 
   @override
   Widget build(BuildContext context) {
@@ -1007,12 +1497,12 @@ class _SettingsSourceDetailPane extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
-                          source.name,
+                          provider.name,
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
                         const SizedBox(height: CrispyOverhaulTokens.compact),
                         Text(
-                          source.summary,
+                          provider.summary,
                           style: Theme.of(
                             context,
                           ).textTheme.bodyLarge?.copyWith(
@@ -1032,17 +1522,17 @@ class _SettingsSourceDetailPane extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
                         ShellIconGraphic(
-                          icon: CrispyShellIcons.settingsStatus(source.status),
+                          icon: _providerKindIcon(provider.providerKind),
                           role: ShellIconRole.status,
-                          color: _sourceStatusColor(source.status),
+                          color: _sourceStateColor(provider.healthState),
                         ),
                         const SizedBox(width: CrispyOverhaulTokens.compact),
                         Text(
-                          source.status,
+                          provider.providerKind.label,
                           style: Theme.of(
                             context,
                           ).textTheme.titleSmall?.copyWith(
-                            color: _sourceStatusColor(source.status),
+                            color: _sourceStateColor(provider.healthState),
                           ),
                         ),
                       ],
@@ -1051,24 +1541,7 @@ class _SettingsSourceDetailPane extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: CrispyOverhaulTokens.medium),
-              DecoratedBox(
-                decoration: CrispyShellRoles.insetPanelDecoration(),
-                child: Padding(
-                  padding: const EdgeInsets.all(CrispyOverhaulTokens.medium),
-                  child: Column(
-                    children: <Widget>[
-                      _DetailField(
-                        label: 'Source type',
-                        value: source.sourceType,
-                      ),
-                      const SizedBox(height: CrispyOverhaulTokens.small),
-                      _DetailField(label: 'Endpoint', value: source.endpoint),
-                      const SizedBox(height: CrispyOverhaulTokens.small),
-                      _DetailField(label: 'Last sync', value: source.lastSync),
-                    ],
-                  ),
-                ),
-              ),
+              _RegistryStateGrid(provider: provider),
               const SizedBox(height: CrispyOverhaulTokens.medium),
               Text(
                 'Capabilities',
@@ -1080,16 +1553,16 @@ class _SettingsSourceDetailPane extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(CrispyOverhaulTokens.medium),
                   child: Column(
-                    children: source.capabilities
+                    children: provider.capabilities
                         .map(
-                          (String capability) => Padding(
+                          (SourceCapabilityDescriptor capability) => Padding(
                             padding: const EdgeInsets.only(
                               bottom: CrispyOverhaulTokens.small,
                             ),
                             child: Row(
                               children: <Widget>[
-                                const ShellIconGraphic(
-                                  icon: Icons.check_circle,
+                                ShellIconGraphic(
+                                  icon: _capabilityIcon(capability.kind),
                                   role: ShellIconRole.row,
                                   color: CrispyOverhaulTokens.textMuted,
                                 ),
@@ -1098,7 +1571,7 @@ class _SettingsSourceDetailPane extends StatelessWidget {
                                 ),
                                 Expanded(
                                   child: Text(
-                                    capability,
+                                    capability.kind.label,
                                     style:
                                         Theme.of(context).textTheme.bodyMedium,
                                   ),
@@ -1120,12 +1593,12 @@ class _SettingsSourceDetailPane extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        'Source actions',
+                        'Provider actions',
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       const SizedBox(height: CrispyOverhaulTokens.small),
                       Text(
-                        'Reconnect uses the same Settings wizard lane; import stays a separate explicit step.',
+                        'Edit, reconnect, and import stay inside the same Settings-owned runtime lane.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: CrispyOverhaulTokens.textSecondary,
                         ),
@@ -1136,16 +1609,18 @@ class _SettingsSourceDetailPane extends StatelessWidget {
                           SizedBox(
                             key: const Key('sources-primary-action'),
                             child: ShellControlButton(
-                              label: source.primaryAction,
+                              label: provider.primaryActionLabel,
                               icon: CrispyShellIcons.settingsAction(
-                                source.primaryAction,
+                                provider.primaryActionLabel,
                               ),
                               onPressed:
-                                  source.status == 'Needs auth'
+                                  provider.authState ==
+                                          SourceAuthState.needsAuth
                                       ? onStartReconnect
-                                      : onStartAddSource,
+                                      : onStartEditSource,
                               controlRole: ShellControlRole.action,
-                              presentation: ShellControlPresentation.iconAndText,
+                              presentation:
+                                  ShellControlPresentation.iconAndText,
                               emphasis: true,
                             ),
                           ),
@@ -1153,11 +1628,12 @@ class _SettingsSourceDetailPane extends StatelessWidget {
                           SizedBox(
                             key: const Key('sources-secondary-action'),
                             child: ShellControlButton(
-                              label: 'Run import wizard',
+                              label: provider.secondaryActionLabel,
                               icon: Icons.playlist_add_outlined,
-                              onPressed: onStartAddSource,
+                              onPressed: onStartImportSource,
                               controlRole: ShellControlRole.action,
-                              presentation: ShellControlPresentation.iconAndText,
+                              presentation:
+                                  ShellControlPresentation.iconAndText,
                             ),
                           ),
                         ],
@@ -1201,15 +1677,215 @@ class _DetailField extends StatelessWidget {
   }
 }
 
-Color _sourceStatusColor(String status) {
-  switch (status) {
-    case 'Healthy':
-      return CrispyOverhaulTokens.semanticSuccess;
-    case 'Degraded':
-      return CrispyOverhaulTokens.semanticWarning;
-    default:
-      return CrispyOverhaulTokens.semanticDanger;
+class _RegistryStateGrid extends StatelessWidget {
+  const _RegistryStateGrid({required this.provider});
+
+  final SourceProviderEntry provider;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: CrispyShellRoles.insetPanelDecoration(),
+      child: Padding(
+        padding: const EdgeInsets.all(CrispyOverhaulTokens.medium),
+        child: Column(
+          children: <Widget>[
+            _DetailField(
+              label: 'Provider type',
+              value: provider.providerKind.label,
+            ),
+            const SizedBox(height: CrispyOverhaulTokens.small),
+            _DetailField(label: 'Source type', value: provider.sourceTypeLabel),
+            const SizedBox(height: CrispyOverhaulTokens.small),
+            _DetailField(label: 'Endpoint', value: provider.endpointLabel),
+            const SizedBox(height: CrispyOverhaulTokens.small),
+            _DetailField(label: 'Last sync', value: provider.lastSyncLabel),
+            const SizedBox(height: CrispyOverhaulTokens.small),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: _StateCard(
+                    label: 'Health',
+                    stateLabel: provider.healthState.label,
+                    icon: _stateIcon(provider.healthState),
+                    color: _sourceStateColor(provider.healthState),
+                  ),
+                ),
+                const SizedBox(width: CrispyOverhaulTokens.small),
+                Expanded(
+                  child: _StateCard(
+                    label: 'Auth',
+                    stateLabel: provider.authState.label,
+                    icon: _stateIcon(provider.authState),
+                    color: _sourceStateColor(provider.authState),
+                  ),
+                ),
+                const SizedBox(width: CrispyOverhaulTokens.small),
+                Expanded(
+                  child: _StateCard(
+                    label: 'Import',
+                    stateLabel: provider.importState.label,
+                    icon: _stateIcon(provider.importState),
+                    color: _sourceStateColor(provider.importState),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
+}
+
+class _StateCard extends StatelessWidget {
+  const _StateCard({
+    required this.label,
+    required this.stateLabel,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final String stateLabel;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: CrispyShellRoles.infoPlateDecoration(),
+      child: Padding(
+        padding: const EdgeInsets.all(CrispyOverhaulTokens.small),
+        child: Row(
+          children: <Widget>[
+            ShellIconGraphic(icon: icon, role: ShellIconRole.row, color: color),
+            const SizedBox(width: CrispyOverhaulTokens.small),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: CrispyOverhaulTokens.textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: CrispyOverhaulTokens.compact),
+                  Text(
+                    stateLabel,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: color),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StateLabel extends StatelessWidget {
+  const _StateLabel({
+    required this.label,
+    required this.state,
+    required this.selected,
+  });
+
+  final String label;
+  final Object state;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color = _sourceStateColor(state);
+    return DecoratedBox(
+      decoration: CrispyShellRoles.infoPlateDecoration(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: CrispyOverhaulTokens.small,
+          vertical: CrispyOverhaulTokens.compact,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            ShellIconGraphic(
+              icon: _stateIcon(state),
+              role: ShellIconRole.badge,
+              color: selected ? CrispyOverhaulTokens.navSelectedText : color,
+            ),
+            const SizedBox(width: CrispyOverhaulTokens.compact),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: selected ? CrispyOverhaulTokens.navSelectedText : color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+IconData _providerKindIcon(SourceProviderKind kind) {
+  return switch (kind) {
+    SourceProviderKind.m3uUrl => Icons.link_outlined,
+    SourceProviderKind.localM3u => Icons.folder_open_outlined,
+    SourceProviderKind.xtream => Icons.hub_outlined,
+    SourceProviderKind.stalker => Icons.router_outlined,
+  };
+}
+
+IconData _stateIcon(Object state) {
+  return switch (state) {
+    SourceHealthState.healthy => Icons.check_circle,
+    SourceHealthState.degraded => Icons.warning_amber_outlined,
+    SourceHealthState.needsAuth => Icons.lock_outline,
+    SourceHealthState.unknown => Icons.help_outline,
+    SourceAuthState.connected => Icons.verified_outlined,
+    SourceAuthState.reconnecting => Icons.sync_outlined,
+    SourceAuthState.needsAuth => Icons.lock_outline,
+    SourceAuthState.unknown => Icons.help_outline,
+    SourceImportState.ready => Icons.download_done_outlined,
+    SourceImportState.pending => Icons.downloading_outlined,
+    SourceImportState.blocked => Icons.block_outlined,
+    SourceImportState.unknown => Icons.help_outline,
+    _ => Icons.circle_outlined,
+  };
+}
+
+Color _sourceStateColor(Object state) {
+  return switch (state) {
+    SourceHealthState.healthy => CrispyOverhaulTokens.semanticSuccess,
+    SourceHealthState.degraded => CrispyOverhaulTokens.semanticWarning,
+    SourceHealthState.needsAuth => CrispyOverhaulTokens.semanticDanger,
+    SourceHealthState.unknown => CrispyOverhaulTokens.textSecondary,
+    SourceAuthState.connected => CrispyOverhaulTokens.semanticSuccess,
+    SourceAuthState.reconnecting => CrispyOverhaulTokens.semanticWarning,
+    SourceAuthState.needsAuth => CrispyOverhaulTokens.semanticDanger,
+    SourceAuthState.unknown => CrispyOverhaulTokens.textSecondary,
+    SourceImportState.ready => CrispyOverhaulTokens.semanticSuccess,
+    SourceImportState.pending => CrispyOverhaulTokens.semanticWarning,
+    SourceImportState.blocked => CrispyOverhaulTokens.semanticDanger,
+    SourceImportState.unknown => CrispyOverhaulTokens.textSecondary,
+    _ => CrispyOverhaulTokens.textSecondary,
+  };
+}
+
+IconData _capabilityIcon(SourceCapabilityKind kind) {
+  return switch (kind) {
+    SourceCapabilityKind.liveTv => Icons.live_tv_outlined,
+    SourceCapabilityKind.guide => Icons.view_timeline_outlined,
+    SourceCapabilityKind.catchup => Icons.history_outlined,
+    SourceCapabilityKind.archive => Icons.inventory_2_outlined,
+    SourceCapabilityKind.movies => Icons.local_movies_outlined,
+    SourceCapabilityKind.series => Icons.tv_outlined,
+    SourceCapabilityKind.other => Icons.label_outline,
+  };
 }
 
 class _SettingsSearchEmptyState extends StatelessWidget {
@@ -1244,33 +1920,37 @@ class _SettingsSearchEmptyState extends StatelessWidget {
   }
 }
 
-List<_SettingsSearchMatch> _findMatches(
-  ShellContentSnapshot content,
-  String query,
-) {
+List<_SettingsSearchMatch> _findMatches({
+  required List<SettingsItem> generalSettings,
+  required List<SettingsItem> playbackSettings,
+  required List<SettingsItem> appearanceSettings,
+  required List<SettingsItem> systemSettings,
+  required SourceProviderRegistry sourceRegistry,
+  required String query,
+}) {
   final String needle = query.toLowerCase();
   final List<_SettingsSearchMatch> matches = <_SettingsSearchMatch>[
     ..._settingsMatches(
       panel: SettingsPanel.general,
-      items: content.generalSettings,
+      items: generalSettings,
       query: needle,
     ),
     ..._settingsMatches(
       panel: SettingsPanel.playback,
-      items: content.playbackSettings,
+      items: playbackSettings,
       query: needle,
     ),
     ..._settingsMatches(
       panel: SettingsPanel.appearance,
-      items: content.appearanceSettings,
+      items: appearanceSettings,
       query: needle,
     ),
     ..._settingsMatches(
       panel: SettingsPanel.system,
-      items: content.systemSettings,
+      items: systemSettings,
       query: needle,
     ),
-    ..._sourceMatches(content.sourceHealthItems, needle),
+    ..._sourceMatches(sourceRegistry.configuredProviders, needle),
   ];
 
   matches.sort(_compareSearchMatches);
@@ -1305,27 +1985,32 @@ List<_SettingsSearchMatch> _settingsMatches({
 }
 
 List<_SettingsSearchMatch> _sourceMatches(
-  List<SourceHealthItem> sources,
+  List<SourceProviderEntry> providers,
   String query,
 ) {
   final List<_SettingsSearchMatch> matches = <_SettingsSearchMatch>[];
-  for (int index = 0; index < sources.length; index += 1) {
-    final SourceHealthItem source = sources[index];
+  for (int index = 0; index < providers.length; index += 1) {
+    final SourceProviderEntry provider = providers[index];
     final int score = _scoreText(query, <String>[
-      source.name,
-      source.status,
-      source.summary,
-      source.sourceType,
-      source.endpoint,
-      source.lastSync,
-      ...source.capabilities,
-      source.primaryAction,
+      provider.name,
+      provider.summary,
+      provider.providerKind.label,
+      provider.healthState.label,
+      provider.authState.label,
+      provider.importState.label,
+      provider.sourceTypeLabel,
+      provider.endpointLabel,
+      provider.lastSyncLabel,
+      ...provider.capabilities.map(
+        (SourceCapabilityDescriptor capability) => capability.kind.label,
+      ),
+      provider.primaryActionLabel,
     ]);
     if (score > 0) {
       matches.add(
         _SettingsSearchMatch.source(
           sourceIndex: index,
-          source: source,
+          source: provider,
           score: score,
         ),
       );
@@ -1335,7 +2020,11 @@ List<_SettingsSearchMatch> _sourceMatches(
 }
 
 _SettingsSearchMatch? _matchForOpenedLeaf({
-  required ShellContentSnapshot content,
+  required List<SettingsItem> generalSettings,
+  required List<SettingsItem> playbackSettings,
+  required List<SettingsItem> appearanceSettings,
+  required List<SettingsItem> systemSettings,
+  required SourceProviderRegistry sourceRegistry,
   required SettingsPanel panel,
   required String? highlightedLeaf,
   required int selectedSourceIndex,
@@ -1351,15 +2040,15 @@ _SettingsSearchMatch? _matchForOpenedLeaf({
             : selectedSourceIndex;
     return _SettingsSearchMatch.source(
       sourceIndex: sourceIndex,
-      source: content.sourceHealthItems[sourceIndex],
+      source: sourceRegistry.configuredProviderAt(sourceIndex),
       score: 0,
     );
   }
   final List<SettingsItem> items = switch (panel) {
-    SettingsPanel.general => content.generalSettings,
-    SettingsPanel.playback => content.playbackSettings,
-    SettingsPanel.appearance => content.appearanceSettings,
-    SettingsPanel.system => content.systemSettings,
+    SettingsPanel.general => generalSettings,
+    SettingsPanel.playback => playbackSettings,
+    SettingsPanel.appearance => appearanceSettings,
+    SettingsPanel.system => systemSettings,
     SettingsPanel.sources => const <SettingsItem>[],
   };
   for (int index = 0; index < items.length; index += 1) {
@@ -1448,7 +2137,7 @@ class _SettingsSearchMatch {
 
   factory _SettingsSearchMatch.source({
     required int sourceIndex,
-    required SourceHealthItem source,
+    required SourceProviderEntry source,
     required int score,
   }) {
     return _SettingsSearchMatch._(
@@ -1466,7 +2155,7 @@ class _SettingsSearchMatch {
   final int? itemIndex;
   final int? sourceIndex;
   final SettingsItem? item;
-  final SourceHealthItem? source;
+  final SourceProviderEntry? source;
 
   String get displayLabel => item?.title ?? source?.name ?? panel.label;
 

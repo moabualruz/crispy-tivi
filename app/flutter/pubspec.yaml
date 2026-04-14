@@ -16,6 +16,10 @@ dependencies:
   intl: any
   collection: ^1.19.0
   meta: ^1.17.0
+  media_kit: ^1.2.6
+  media_kit_video: ^2.0.1
+  media_kit_libs_video: ^1.0.7
+  flutter_rust_bridge: 2.11.1
 
 dev_dependencies:
   flutter_test:

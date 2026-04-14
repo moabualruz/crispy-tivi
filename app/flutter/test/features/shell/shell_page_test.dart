@@ -1,10 +1,35 @@
 import 'package:crispy_tivi/app/app.dart';
+import 'package:crispy_tivi/features/shell/data/rust_shell_runtime_bridge.dart';
+import 'package:crispy_tivi/features/shell/domain/live_tv_runtime.dart';
+import 'package:crispy_tivi/features/shell/domain/media_runtime.dart';
+import 'package:crispy_tivi/features/shell/domain/search_runtime.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_content.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_contract.dart';
+import 'package:crispy_tivi/features/shell/domain/source_registry_snapshot.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'test_rust_api.dart';
+
 void main() {
+  late LiveTvRuntimeSnapshot liveTvRuntime;
+  late MediaRuntimeSnapshot mediaRuntime;
+  late SearchRuntimeSnapshot searchRuntime;
+
+  setUpAll(() async {
+    await RustShellRuntimeBridge.initializeMock(api: const TestRustApi());
+    liveTvRuntime = LiveTvRuntimeSnapshot.fromJsonString(
+      await rootBundle.loadString('assets/contracts/asset_live_tv_runtime.json'),
+    );
+    mediaRuntime = MediaRuntimeSnapshot.fromJsonString(
+      await rootBundle.loadString('assets/contracts/asset_media_runtime.json'),
+    );
+    searchRuntime = SearchRuntimeSnapshot.fromJsonString(
+      await rootBundle.loadString('assets/contracts/asset_search_runtime.json'),
+    );
+  });
+
   final ShellContractSupport contract = ShellContractSupport.fromContract(
     ShellContract.fromJsonString('''
 {
@@ -295,6 +320,95 @@ void main() {
   ]
 }
 ''');
+  final SourceRegistrySnapshot sourceRegistry =
+      SourceRegistrySnapshot.fromJsonString('''
+{
+  "title": "Source registry",
+  "version": "1",
+  "provider_types": [
+    {
+      "provider_key": "xtream",
+      "provider_type": "Xtream",
+      "family": "portal",
+      "connection_mode": "portal_account",
+      "summary": "Provider login with live, VOD, and EPG lanes.",
+      "capabilities": [
+        {"id": "live_tv", "title": "Live TV", "summary": "Live lane", "supported": true},
+        {"id": "guide", "title": "Guide", "summary": "Guide lane", "supported": true},
+        {"id": "movies", "title": "Movies", "summary": "Movie lane", "supported": true},
+        {"id": "series", "title": "Series", "summary": "Series lane", "supported": true}
+      ],
+      "health": {"status": "Healthy", "summary": "Ready", "last_checked": "now", "last_sync": "now"},
+      "auth": {
+        "status": "Healthy",
+        "progress": "100%",
+        "summary": "Ready",
+        "primary_action": "Verify access",
+        "secondary_action": "Back",
+        "field_labels": ["Server URL", "Username", "Password"],
+        "helper_lines": ["Portal access uses credentials."]
+      },
+      "import": {"status": "Ready", "progress": "100%", "summary": "Ready", "primary_action": "Start import", "secondary_action": "Review"},
+      "onboarding_hint": "Authenticate first."
+    }
+  ],
+  "configured_providers": [
+    {
+      "provider_key": "xtream",
+      "provider_type": "Xtream",
+      "family": "portal",
+      "connection_mode": "portal_account",
+      "summary": "Provider login with live, VOD, and EPG lanes.",
+      "capabilities": [
+        {"id": "live_tv", "title": "Live TV", "summary": "Live lane", "supported": true},
+        {"id": "guide", "title": "Guide", "summary": "Guide lane", "supported": true},
+        {"id": "movies", "title": "Movies", "summary": "Movie lane", "supported": true},
+        {"id": "series", "title": "Series", "summary": "Series lane", "supported": true}
+      ],
+      "health": {"status": "Healthy", "summary": "Ready", "last_checked": "now", "last_sync": "now"},
+      "auth": {
+        "status": "Healthy",
+        "progress": "100%",
+        "summary": "Ready",
+        "primary_action": "Verify access",
+        "secondary_action": "Back",
+        "field_labels": ["Server URL", "Username", "Password"],
+        "helper_lines": ["Portal access uses credentials."]
+      },
+      "import": {"status": "Ready", "progress": "100%", "summary": "Ready", "primary_action": "Start import", "secondary_action": "Review"},
+      "onboarding_hint": "Authenticate first."
+    }
+  ],
+  "onboarding": {
+    "selected_provider_type": "Xtream",
+    "active_step": "Source Type",
+    "step_order": ["Source Type", "Connection", "Credentials", "Import", "Finish"],
+    "steps": [
+      {"step": "Source Type", "title": "Choose source type", "summary": "Pick provider family.", "primary_action": "Continue", "secondary_action": "Back", "field_labels": ["Source type", "Display name"], "helper_lines": ["Ordered wizard."]},
+      {"step": "Connection", "title": "Add connection details", "summary": "Connection first.", "primary_action": "Validate connection", "secondary_action": "Back", "field_labels": ["Connection endpoint"], "helper_lines": ["Validate first."]},
+      {"step": "Credentials", "title": "Authenticate source", "summary": "Credentials second.", "primary_action": "Verify access", "secondary_action": "Back", "field_labels": ["Username", "Password"], "helper_lines": ["Safe unwind."]},
+      {"step": "Import", "title": "Choose import scope", "summary": "Pick lanes.", "primary_action": "Start import", "secondary_action": "Back", "field_labels": ["Import scope", "Validation result"], "helper_lines": ["Explicit import."]},
+      {"step": "Finish", "title": "Finish setup", "summary": "Return to sources.", "primary_action": "Return to sources", "secondary_action": "Back", "field_labels": ["Validation result", "Import scope"], "helper_lines": ["Done."]}
+    ],
+    "provider_copy": [
+      {"provider_key": "xtream", "provider_type": "Xtream", "title": "Portal", "summary": "Xtream provider.", "helper_lines": ["Credentials required."]}
+    ]
+  }
+}
+''');
+
+  Future<void> pumpShellApp(WidgetTester tester) {
+    return tester.pumpWidget(
+      CrispyTiviApp(
+        initialContract: contract,
+        initialContent: content,
+        initialSourceRegistry: sourceRegistry,
+        initialLiveTvRuntime: liveTvRuntime,
+        initialMediaRuntime: mediaRuntime,
+        initialSearchRuntime: searchRuntime,
+      ),
+    );
+  }
 
   testWidgets('global navigation excludes Sources and Player', (
     WidgetTester tester,
@@ -303,9 +417,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      CrispyTiviApp(initialContract: contract, initialContent: content),
-    );
+    await pumpShellApp(tester);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('shell-route-home')), findsOneWidget);
@@ -322,9 +434,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      CrispyTiviApp(initialContract: contract, initialContent: content),
-    );
+    await pumpShellApp(tester);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('shell-utility-settings')));
@@ -339,10 +449,9 @@ void main() {
     await tester.tap(find.byKey(const Key('settings-sidebar-Sources')));
     await tester.pumpAndSettle();
 
-    expect(
-      find.byKey(const Key('source-item-Home Fiber IPTV')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('source-item-Xtream')), findsOneWidget);
+    expect(find.text('Provider registry'), findsOneWidget);
+    expect(find.text('Add provider'), findsOneWidget);
     expect(find.byKey(const Key('sources-add-button')), findsOneWidget);
   });
 
@@ -353,20 +462,18 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      CrispyTiviApp(initialContract: contract, initialContent: content),
-    );
+    await pumpShellApp(tester);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('shell-utility-settings')));
     await tester.pumpAndSettle();
 
     final List<(String key, String leafMarker)> panels = <(String, String)>[
-      ('settings-sidebar-General', 'Startup target'),
-      ('settings-sidebar-Playback', 'Quick play confirmation'),
-      ('settings-sidebar-Sources', 'Connected sources'),
-      ('settings-sidebar-Appearance', 'Focus intensity'),
-      ('settings-sidebar-System', 'Storage'),
+      ('settings-sidebar-General', 'Startup route'),
+      ('settings-sidebar-Playback', 'Continue watching'),
+      ('settings-sidebar-Sources', 'Provider registry'),
+      ('settings-sidebar-Appearance', 'Stage size'),
+      ('settings-sidebar-System', 'ffprobe'),
     ];
 
     for (final (String key, String leafMarker) in panels) {
@@ -380,16 +487,14 @@ void main() {
     }
   });
 
-  testWidgets('source wizard enters from settings and unwinds safely', (
+  testWidgets('sources panel exposes provider actions from settings', (
     WidgetTester tester,
   ) async {
     tester.view.physicalSize = const Size(1920, 1080);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      CrispyTiviApp(initialContract: contract, initialContent: content),
-    );
+    await pumpShellApp(tester);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('shell-utility-settings')));
@@ -399,19 +504,11 @@ void main() {
 
     await tester.tap(find.byKey(const Key('sources-add-button')));
     await tester.pumpAndSettle();
-    expect(find.text('Choose source type'), findsOneWidget);
-    expect(
-      find.byKey(const Key('source-wizard-step-Source Type')),
-      findsOneWidget,
-    );
-
-    final Finder connectionStep = find.byKey(
-      const Key('source-wizard-step-Connection'),
-    );
-    await tester.ensureVisible(connectionStep);
-    await tester.tap(connectionStep);
-    await tester.pumpAndSettle();
-    expect(find.text('Add connection details'), findsOneWidget);
+    expect(find.text('Provider registry'), findsOneWidget);
+    expect(find.byKey(const Key('source-item-Xtream')), findsOneWidget);
+    expect(find.byKey(const Key('sources-add-button')), findsOneWidget);
+    expect(find.byKey(const Key('sources-primary-action')), findsOneWidget);
+    expect(find.byKey(const Key('sources-secondary-action')), findsOneWidget);
   });
 
   testWidgets('settings deep leaf opens exact source detail', (
@@ -421,9 +518,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      CrispyTiviApp(initialContract: contract, initialContent: content),
-    );
+    await pumpShellApp(tester);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('shell-utility-settings')));
@@ -433,15 +528,15 @@ void main() {
 
     await tester.enterText(
       find.byKey(const Key('settings-search-field')),
-      'travel',
+      'xtream',
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('settings-search-hit-0')));
     await tester.pumpAndSettle();
 
-    expect(find.text('travel.example.com / xtream'), findsOneWidget);
-    expect(find.text('Search opened: Travel Archive.'), findsOneWidget);
-    expect(find.text('Sources'), findsWidgets);
+    expect(find.text('Xtream'), findsWidgets);
+    expect(find.text('portal'), findsWidgets);
+    expect(find.text('Provider registry'), findsWidgets);
   });
 
   testWidgets(
@@ -451,9 +546,7 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
 
-      await tester.pumpWidget(
-        CrispyTiviApp(initialContract: contract, initialContent: content),
-      );
+      await pumpShellApp(tester);
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('shell-utility-settings')));
@@ -461,17 +554,17 @@ void main() {
 
       await tester.enterText(
         find.byKey(const Key('settings-search-field')),
-        'storage',
+        'startup',
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Search results'), findsOneWidget);
+      expect(find.byKey(const Key('settings-search-hit-0')), findsOneWidget);
       await tester.tap(find.byKey(const Key('settings-search-hit-0')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Search opened: Storage.'), findsOneWidget);
-      expect(find.byKey(const Key('settings-sidebar-System')), findsOneWidget);
-      expect(find.text('Storage'), findsWidgets);
+      expect(find.text('Search opened: Startup route.'), findsOneWidget);
+      expect(find.byKey(const Key('settings-sidebar-General')), findsOneWidget);
+      expect(find.text('Startup route'), findsWidgets);
     },
   );
 
@@ -482,9 +575,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      CrispyTiviApp(initialContract: contract, initialContent: content),
-    );
+    await pumpShellApp(tester);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('shell-route-liveTv')));
@@ -493,7 +584,7 @@ void main() {
     expect(find.byKey(const Key('live-tv-sidebar-Channels')), findsOneWidget);
     expect(find.byKey(const Key('live-tv-sidebar-Guide')), findsOneWidget);
     expect(find.byKey(const Key('live-tv-sidebar-All')), findsNothing);
-    expect(find.byKey(const Key('live-tv-group-allChannels')), findsOneWidget);
+    expect(find.byKey(const Key('live-tv-group-all')), findsOneWidget);
   });
 
   testWidgets(
@@ -503,9 +594,7 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
 
-      await tester.pumpWidget(
-        CrispyTiviApp(initialContract: contract, initialContent: content),
-      );
+      await pumpShellApp(tester);
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('shell-route-liveTv')));
@@ -515,26 +604,26 @@ void main() {
         find.byKey(const Key('live-tv-playing-channel-label')),
         findsOneWidget,
       );
-      expect(
-        find.textContaining('Start over and last 24 hours'),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('live-tv-tune-action')), findsOneWidget);
 
-      await tester.tap(find.byKey(const Key('live-tv-channel-118')));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('live-tv-channel-118')));
+    await tester.pumpAndSettle();
 
-      expect(find.text('Championship Replay'), findsWidgets);
-      expect(find.text('Preview only'), findsOneWidget);
-      expect(find.textContaining('Replay supports catch-up'), findsOneWidget);
+    expect(find.text('Championship Replay'), findsWidgets);
+    expect(
+      find.textContaining(
+        'Selected detail stays in the right lane while browse remains on the left.',
+      ),
+      findsOneWidget,
+    );
 
-      await tester.ensureVisible(find.byKey(const Key('live-tv-tune-action')));
-      await tester.tap(find.byKey(const Key('live-tv-tune-action')));
-      await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('live-tv-tune-action')));
+    await tester.tap(find.byKey(const Key('live-tv-tune-action')));
+    await tester.pumpAndSettle();
 
-      expect(find.text('Playing now'), findsOneWidget);
-      expect(find.text('Playing 118'), findsOneWidget);
-      expect(find.text('Live TV · All'), findsOneWidget);
-      expect(find.text('Championship Replay'), findsWidgets);
+    expect(find.text('Live TV · 118'), findsOneWidget);
+    expect(find.text('Live TV · All'), findsOneWidget);
+    expect(find.text('Championship Replay'), findsWidgets);
 
       await tester.tap(find.byKey(const Key('player-open-info')));
       await tester.pumpAndSettle();
@@ -552,9 +641,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      CrispyTiviApp(initialContract: contract, initialContent: content),
-    );
+    await pumpShellApp(tester);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('shell-route-liveTv')));
@@ -562,20 +649,18 @@ void main() {
     await tester.tap(find.byKey(const Key('live-tv-sidebar-Guide')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('live-tv-group-allChannels')), findsOneWidget);
+    expect(find.byKey(const Key('live-tv-group-all')), findsOneWidget);
     expect(find.byKey(const Key('live-tv-tune-action')), findsNothing);
     expect(find.text('Market Close'), findsWidgets);
     expect(
       find.byKey(const Key('live-tv-guide-live-edge-label')),
       findsOneWidget,
     );
-    expect(find.text('Starts at 22:00'), findsWidgets);
 
     await tester.tap(find.byKey(const Key('live-tv-group-sports')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Analysis'), findsWidgets);
-    expect(find.text('Queued'), findsWidgets);
+    expect(find.text('Championship Replay'), findsWidgets);
   });
 
   testWidgets('media sidebar owns subviews while scope lives in content', (
@@ -585,9 +670,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      CrispyTiviApp(initialContract: contract, initialContent: content),
-    );
+    await pumpShellApp(tester);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('shell-route-media')));
@@ -599,66 +682,57 @@ void main() {
     expect(find.byKey(const Key('media-scope-library')), findsOneWidget);
   });
 
-  testWidgets('series browsing opens player and supports in-player episode switching', (
-    WidgetTester tester,
-  ) async {
-    tester.view.physicalSize = const Size(1920, 1080);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+  testWidgets(
+    'series browsing opens player and supports in-player episode switching',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      CrispyTiviApp(initialContract: contract, initialContent: content),
-    );
-    await tester.pumpAndSettle();
+      await pumpShellApp(tester);
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('shell-route-media')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('media-sidebar-Series')));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('shell-route-media')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('media-sidebar-Series')));
+      await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('series-season-0')), findsOneWidget);
-    expect(find.byKey(const Key('series-season-1')), findsOneWidget);
-    expect(find.byKey(const Key('series-episode-0-0')), findsOneWidget);
-    expect(find.byKey(const Key('series-handoff-state')), findsOneWidget);
-    expect(find.textContaining('Ready for S1:E1'), findsOneWidget);
+      expect(find.byKey(const Key('series-season-0')), findsOneWidget);
+      expect(find.byKey(const Key('series-season-1')), findsOneWidget);
+      expect(find.byKey(const Key('series-episode-0-0')), findsOneWidget);
+      expect(find.byKey(const Key('series-handoff-state')), findsOneWidget);
+      expect(find.textContaining('Ready for S1:E1'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('series-season-1')));
-    await tester.pumpAndSettle();
-    await tester.drag(
-      find.byKey(const Key('media-list-view')),
-      const Offset(0, -700),
-    );
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('series-episode-1-1')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('series-episode-1-1')));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('series-launch-action')));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('series-episode-0-1')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('series-launch-action')));
+      await tester.pumpAndSettle();
 
-    expect(find.textContaining('Ready for S2:E2'), findsOneWidget);
-    expect(find.byKey(const Key('series-launch-action')), findsOneWidget);
+      expect(find.textContaining('Ready for S1:E2'), findsOneWidget);
+      expect(find.byKey(const Key('series-launch-action')), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('series-launch-action')));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('series-launch-action')));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Media · Series'), findsOneWidget);
-    expect(find.text('Signal Drift'), findsOneWidget);
-    expect(find.byKey(const Key('player-open-info')), findsOneWidget);
+      expect(find.text('Media · Series'), findsOneWidget);
+      expect(find.text('After Current'), findsOneWidget);
+      expect(find.byKey(const Key('player-open-info')), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('player-open-info')));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('player-open-info')));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('player-queue-item-0')));
-    await tester.pumpAndSettle();
-    expect(find.text('Return Path'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('player-queue-item-0')));
+      await tester.pumpAndSettle();
+      expect(find.text('Shadow Signals'), findsWidgets);
 
-    await tester.tap(find.byKey(const Key('player-back-action')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('player-open-info')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('player-back-action')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('player-open-info')), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('player-back-action')));
-    await tester.pumpAndSettle();
-    expect(find.text('Signal Drift'), findsNothing);
-  });
+      await tester.tap(find.byKey(const Key('player-back-action')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('player-open-info')), findsNothing);
+      expect(find.byKey(const Key('series-detail-panel')), findsOneWidget);
+    },
+  );
 }

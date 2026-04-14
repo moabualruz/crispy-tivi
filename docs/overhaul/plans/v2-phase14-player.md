@@ -1,12 +1,14 @@
 # Phase 14: Player Implementation
 
-Status: complete
+Status: UI-first retained-player baseline complete
 
 ## Scope
 
 - Replace mock player handoff placeholders with the retained player surface.
 - Keep player out of global navigation and out of shell route chrome.
 - Preserve contextual back/unwind order from the installed player gate.
+- Deliver the retained player baseline for the UI-first app, not the final
+  player product.
 
 ## Completed Behavior
 
@@ -31,3 +33,10 @@ Status: complete
 - Flutter analyze/tests green
 - Linux smoke/build green
 - web build and browser smoke green
+
+## Not closed by this phase
+
+- final player visual/design completion
+- final player control-language completion
+- real playback/backend integration
+- full production player implementation

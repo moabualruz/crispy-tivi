@@ -207,7 +207,7 @@ final class CrispyShellIcons {
     return Icons.arrow_forward_outlined;
   }
 
-  static IconData back() => Icons.chevron_left_rounded;
+  static IconData back() => Icons.arrow_back_rounded;
 
   static IconData info() => Icons.info_outline_rounded;
 
