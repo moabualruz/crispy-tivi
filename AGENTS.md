@@ -13,13 +13,13 @@ The branch `kotlin_try` is currently scaffolding-only: 50 module skeletons, buil
 Read in this order. When any file under `docs/` contradicts another, `docs/decisions.md` wins.
 
 1. **`docs/Requirements.md`** — index + reading order
-2. **`docs/decisions.md`** — 17 resolved decisions from the conflict-resolution interview + dependency audit. Authoritative. Key ones to know: D13 (hand-rolled nav), D14 (desktop player backend still open), D15 (all six platforms ship V1), D16 (nothing is post-V1 — SPEC §21 is V1 late-phase), D17 (drop ill-maintained or single-platform-only libraries and hand-roll).
+2. **`docs/decisions.md`** — 19 resolved decisions from the conflict-resolution interview + dependency audit + desktop backend selection. Authoritative. Key ones to know: D13 (hand-rolled nav), D14 superseded by D18 (desktop player = **libmpv via custom JNA binding**), D15 (all six platforms ship V1), D16 (nothing is post-V1 — SPEC §21 is V1 late-phase), D17 (drop ill-maintained or single-platform-only libraries and hand-roll), D18 (desktop player = libmpv), D19 (desktop thumbnails + stream probe = `org.bytedeco:ffmpeg` LGPL build directly, not JavaCV).
 3. **`docs/v1-phase-roadmap.md`** — every V1 feature by phase (foundation → core MVP → late-phase → release polish). Use this to know *when* a feature ships, not whether.
 4. **`docs/code-standards.md`** ← emphasized — UDF, DDD-lite, adapter/strategy/facade/policy patterns, StateFlow rules, DRY/SOLID pragmatics, naming, error model, performance rules, testing focus. Every code change must conform.
 5. **`docs/monorepo-blueprint.md`** ← emphasized — authoritative module graph, responsibilities, dependency direction, package layout, file shapes, boundary rules, naming rules, merge/split guidance.
 6. Supporting requirements: `docs/tech-spec.md`, `docs/platform-behavior.md`, `docs/data-model.md`, `docs/db-schema-guide.md`, `docs/contract-api-spec.md`, `docs/architecture-decisions.md`, `docs/uiux-spec.md`.
 7. `docs/orchestrator-start-prompt.md` / `docs/orchestrator-short-prompt.md` — research → brainstorm → plan → execute → verify workflow for non-trivial work.
-8. `docs/open-questions.md` — hand-roll architecture sketches for navigation (R1), player backend (R3), media session (R5), casting (R6), plus the single remaining research task R2 (desktop playback backend: libVLC vs mpv vs FFmpeg).
+8. `docs/open-questions.md` — hand-roll architecture sketches for navigation (R1), player backend (R3), media session (R5), casting (R6). R2 is **resolved** (D18) and kept as a historical record of the backend comparison. No third-party library research tasks remain open.
 
 ## Repository layout
 
@@ -64,9 +64,9 @@ If a dependency is ill-maintained (single-maintainer on a load-bearing subsystem
 
 **Dropped so far:** Decompose, Voyager, androidx.navigation.compose (navigation); MediaMP / kdroidFilter ComposeMediaPlayer / Chaintech (player wrappers); mediasession-kt (desktop media session); xmlutil (XMLTV); saifullah-nurani/XtreamApi.
 
-**Kept:** Kotlin 2.3.20, Gradle 9.4.1, AGP 9.1.0, Compose Multiplatform 1.10.3, kotlinx.* family, androidx.* family, SQLDelight 2.3.2, Ktor 3.4.2, Media3 1.10.0 (Android), Coil 3.4.0, Koin 4.2.1, Kermit 2.1.0, Turbine 1.2.1, Kotest 6.1.11.
+**Kept:** Kotlin 2.3.20, Gradle 9.4.1, AGP 9.1.0, Compose Multiplatform 1.10.3, kotlinx.* family, androidx.* family, SQLDelight 2.3.2, Ktor 3.4.2, Media3 1.10.0 (Android), Coil 3.4.0, Koin 4.2.1, Kermit 2.1.0, Turbine 1.2.1, Kotest 6.1.11, **JNA 5.18.1** (libmpv binding, D18), **`org.bytedeco:ffmpeg 8.0.1-1.5.13` + `javacpp 1.5.13`** (desktop thumbnails + stream probe, LGPL build only, D19).
 
-**Hand-rolled subsystems:** navigation + back stack + restoration (`core/navigation` + `data/restoration`), `PlaybackBackend` contract + per-platform impls (`core/playback` + `platform/player/*`), media session on non-Android (`platform/player/*` via cinterop/JNI), M3U / Xtream / Stalker parsers (`provider/*`), XMLTV streaming parser (`core/epg`), casting contract + per-platform impls (phase 3).
+**Hand-rolled subsystems:** navigation + back stack + restoration (`core/navigation` + `data/restoration`), `PlaybackBackend` contract + per-platform impls (`core/playback` + `platform/player/*` — Android = Media3, Apple = AVPlayer cinterop, Desktop = **libmpv via custom JNA binding**, Web = hls.js externals), thumbnail + stream probe (`core/image` using `MediaMetadataRetriever` on Android / `AVAssetImageGenerator` on Apple / **javacpp-presets ffmpeg** on desktop / browser canvas on web), media session on non-Android (`platform/player/*` via cinterop/JNI), M3U / Xtream / Stalker parsers (`provider/*`), XMLTV streaming parser (`core/epg`), casting contract + per-platform impls (phase 3).
 
 Apply both gates before adding any new dependency to `gradle/libs.versions.toml`.
 

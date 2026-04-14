@@ -297,8 +297,142 @@ Items reclassified into V1 late phase (Phase 3):
 
 ---
 
+## D18 — Desktop playback backend is libmpv via a custom JNA binding
+
+**Decision:** `:platform:player:desktop` implements the `PlaybackBackend` contract on top of **libmpv** (built in LGPL v2.1+ mode) via a hand-rolled JNA binding. Closes R2.
+
+**Candidates evaluated and rejected:**
+
+| Candidate | Why rejected |
+|---|---|
+| **libVLC via vlcj** | vlcj itself is GPL v3 — requires a paid commercial license from Caprica Software to ship in a proprietary app. License-blocked. Largest bundle (~100+ MB plugin tree). macOS notarization of hundreds of plugin dylibs is documented pain. |
+| **GStreamer via gst1-java-core** | LGPL-safe and has the strongest LL-HLS / multicast IPTV pedigree, but: largest bundle (~120 MB plugin tree), macOS/Windows packaging friction (GST_PLUGIN_PATH + writable registry cache), zero Compose Desktop production users, and — critically — no libplacebo equivalent so picture quality tuning is far weaker than MPV's. Viable 2nd choice if libmpv proves problematic. |
+| **FFmpeg via JavaCV (as a player)** | JavaCV gives you a frame-grabber, not a player. Building a real player on top requires implementing A/V sync, audio device output, libass rendering, adaptive HLS quality switching — 3–6 months of custom work, and you end up with a worse player than mpv's. Wrong abstraction layer for playback. (See D19 — ffmpeg is used separately for thumbnails/probe, which *is* the right use of javacpp-presets.) |
+
+**Why libmpv wins:**
+
+1. **License:** libmpv built in LGPL mode is commercial-proprietary safe via dynamic linking. No per-seat payment, no obligations on app source.
+2. **Picture quality:** libmpv uses **libplacebo** (the MPV/VLC team's state-of-the-art rendering library) for HDR tone mapping (BT.2390, BT.2446a), dynamic per-scene tone mapping, debanding, film grain synthesis, ICC display profiles, and high-quality polar resamplers (ewa_lanczossharp, spline36, etc.). No other candidate has this. GStreamer would require bolting libplacebo on manually.
+3. **Enhancement filter ecosystem:** MPV's GLSL shader system is the largest library of drop-in video enhancement shaders on desktop. Anime4K, RealCUGAN/RealESRGAN (ML upscalers compiled to GLSL), NVIDIA Image Scaling, AMD FSR 1.0, KrigBilateral, SSimDownscaler, SSimSuperRes — all ship as `.glsl` files and load at runtime with a single `change-list glsl-shaders append <path>` command. Users can toggle enhancement filters mid-playback without rebuilding the pipeline.
+4. **IPTV protocol coverage:** HLS (including LL-HLS since mpv 0.36 via ffmpeg 6.0+), MPEG-TS direct, RTSP, UDP multicast, DASH, MKV, WebVTT/SRT/SSA/ASS (built-in libass).
+5. **Bundle size:** one ~25–35 MB `libmpv.dll` / `.so` / `.dylib` per OS, no plugin tree. Smallest of the four candidates by 3–4×.
+6. **Render path:** `mpv_render_context` with `MPV_RENDER_API_OPENGL` shares a GL texture with Skiko's `DirectContext`. The only direct-GPU render path among the candidates — no per-frame CPU blit through a `ByteBuffer`.
+7. **Institutional native maintenance:** mpv project has been active since 2012; libmpv is the basis of mpv.io's desktop player, used by millions. The bus-factor concern in D17 was about Kotlin wrappers — the native library behind this one is indestructible.
+
+**The hand-rolled binding:**
+
+- **Module home:** `:platform:player:desktop`.
+- **Dependency:** JNA 5.18.1 (`net.java.dev.jna:jna` + `jna-platform`) — added to the catalog.
+- **API surface:** JNA interface over `mpv_create`, `mpv_set_option_string`, `mpv_command_async`, `mpv_observe_property`, `mpv_event_queue`, `mpv_render_context_create`, `mpv_render_context_render`, `mpv_render_context_free`. ~1–2 KLOC of Kotlin.
+- **Native binary bundling:** `app/desktop/build.gradle.kts` `compose.desktop.application.nativeDistributions.appResourcesRootDir` points at per-OS libmpv binaries. Binaries are downloaded during build time into a gitignored `build/libmpv-cache/` and copied into the installer. CI fetches them once per OS runner.
+- **Render path:** `mpv_render_context` OpenGL binding to Skiko's `DirectContext`, texture shared with Compose.
+- **Reference to cherry-pick from:** animeko's in-progress MPV backend at `open-ani/mediamp` (MPV branch). Watch their work; do not consume as a dependency (single-maintainer bus factor).
+
+**Picture-quality caveat worth knowing now:** libmpv's LL-HLS is mature but GStreamer's `hlsdemux2` is marginally better for sub-second broadcast latency. For consumer IPTV (normal HLS + VOD on nice displays), libmpv is strictly better. For carrier-grade sub-second live, GStreamer would have had an edge. We're building a consumer IPTV app, not a set-top-box — libmpv is the right call.
+
+**Affected:**
+
+- [open-questions.md](open-questions.md) R2 → resolved
+- [architecture-decisions.md](architecture-decisions.md) ADR-007 desktop bullet → names libmpv
+- [tech-spec.md](tech-spec.md) §23.1 and Amendment B → resolved
+- `gradle/libs.versions.toml` → `jna = "5.18.1"`, `jna-core`, `jna-platform` added
+
+---
+
+## D19 — Desktop thumbnails and stream probe use bytedeco javacpp-presets FFmpeg (LGPL only)
+
+**Decision:** `:core:image` (thumbnail extraction) and `:core:playback` (stream probing) implement desktop-side frame extraction and metadata probing on top of **`org.bytedeco:ffmpeg:8.0.1-1.5.13`** built in LGPL v3 mode, consumed directly through the JavaCPP loader — no JavaCV wrapper, no `-platform` bundles.
+
+**Why separate from the player backend:**
+
+Thumbnails and probing are distinct concerns from playback:
+
+- They don't need a running player instance
+- They need random-access seek-and-grab-one-frame semantics, which is FFmpeg's core strength
+- They also need metadata extraction (duration, codecs, tracks) during source onboarding
+- The real-world reference (animeko / `open-ani/mediamp`) uses exactly this split — `mediamp-vlc-desktop` for playback, `mediamp-ffmpeg-desktop` for thumbnails and probing
+
+libmpv does have a `screenshot-to-file` command, but it requires a headless player instance per thumbnail and incurs full decode-pipeline startup cost. JavaCPP-presets ffmpeg is faster for the thumbnail use case and doubles as the metadata prober.
+
+**Candidates evaluated:**
+
+| Candidate | Verdict |
+|---|---|
+| **JavaCV (`org.bytedeco:javacv:1.5.13`)** | Ergonomic `FFmpegFrameGrabber` + `Java2DFrameConverter` convenience on top of javacpp-presets. Same native, same license. But: bundles OpenCV, Leptonica, Tesseract classpath glue (excludable but whack-a-mole), and the value added over raw javacpp-presets is ~1 week of wrapping time. Not worth the extra surface area for a thumbnail-only use case. |
+| **javacpp-presets ffmpeg directly (CHOSEN)** | Smallest dep, LGPL v3 by default, single-OS classifier control, no JavaCV bloat. ~300 LOC of Kotlin wraps both the thumbnail and probe use cases cleanly. |
+| **Jaffree** | Pure-Java subprocess wrapper around the `ffmpeg` CLI binary. Upstream stalled since Aug 2024; active fork at `v47-io/Jaffree` is single-maintainer. Spawns a subprocess per thumbnail (80–200 ms overhead — sprite sheets get painful). You'd also ship the ffmpeg binary yourself, moving the license problem to your own ffmpeg build. Viable only if you already ship ffmpeg CLI elsewhere. |
+| **humble-video / jcodec / others** | Dead since 2019 (humble-video) or too limited for HLS/TS (jcodec). Not production-grade in 2026. |
+
+**License clarity (critical — do not get this wrong):**
+
+- `org.bytedeco:ffmpeg:8.0.1-1.5.13` with **no classifier suffix** = LGPL v3. Commercial-proprietary safe via dynamic linking. ✓
+- `org.bytedeco:ffmpeg:8.0.1-1.5.13:*-gpl` = GPL build, enables x264/x265 encoders. **NEVER PULL THIS CLASSIFIER.**
+- The LGPL build covers everything we need for thumbnails: H.264/H.265/AV1/VP9 decoders, HLS/DASH/MPEG-TS demuxers, all subtitle formats. We don't need the GPL-only x264 encoder because we are **decoding**, not encoding.
+
+Cited: [javacpp-presets ffmpeg/LICENSE.md](https://github.com/bytedeco/javacpp-presets/blob/master/ffmpeg/LICENSE.md).
+
+**Gradle consumption pattern (single OS per installer, not `-platform`):**
+
+In the module that actually loads the natives — likely `:core:image` and `:platform:player:desktop`:
+
+```kotlin
+// resolveJavaCppPlatformClassifier() = helper in build-logic that returns
+// linux-x86_64 / linux-arm64 / macosx-x86_64 / macosx-arm64 / windows-x86_64
+// based on the host OS + arch. CI runs one build per OS runner.
+val os = resolveJavaCppPlatformClassifier()
+implementation(libs.bytedeco.ffmpeg)
+implementation("org.bytedeco:ffmpeg:8.0.1-1.5.13:$os")
+implementation(libs.bytedeco.javacpp)
+implementation("org.bytedeco:javacpp:1.5.13:$os")
+```
+
+Never use `javacv-platform` or `ffmpeg-platform` bundles — they drag all six OS natives into one jar (~1.5 GB).
+
+**Bundle size (per OS, single classifier):**
+
+| OS | libmpv (D18) | javacpp-presets ffmpeg (D19) | Total |
+|---|---|---|---|
+| Linux x86_64 | ~25 MB | ~32 MB | ~57 MB |
+| macOS arm64 | ~30 MB | ~28 MB | ~58 MB |
+| Windows x86_64 | ~35 MB | ~45 MB | ~80 MB |
+
+Plus ~6 MB for the javacpp loader. Combined desktop media stack: 60–90 MB per OS. Smaller than vlcj alone would have been.
+
+**Long-running memory-leak pattern to bake in from day one:**
+
+Issues [javacpp-presets#878](https://github.com/bytedeco/javacpp-presets/issues/878) and [#1072](https://github.com/bytedeco/javacpp-presets/issues/1072) document small native leaks from improperly-scoped `AVRational`/`AVPacket`/`AVFrame` objects in long-running loops. Thumbnail extraction happens repeatedly (one per Continue-Watching entry + sprite sheets), so the internal helper in `:core:image` must:
+
+1. Wrap every extraction call in a JavaCPP `PointerScope`
+2. Explicitly `av_packet_unref` / `av_frame_unref` in a `finally`
+3. Close the input context with `avformat_close_input` in a `finally`
+4. Not hold references to FFmpeg pointer objects across coroutine suspension boundaries
+
+This lives in a single internal helper function inside `:core:image`, not in individual feature callers.
+
+**What this means for module ownership:**
+
+- `:core:image` owns a `ThumbnailExtractor` contract + `expect/actual` implementations:
+  - Android → `MediaMetadataRetriever` (native AndroidX)
+  - Apple (iOS + macOS) → `AVAssetImageGenerator` cinterop
+  - Desktop (Windows / Linux) → javacpp-presets ffmpeg + the leak-safe helper
+  - Web → `<video>` element + `canvas.drawImage()` + `toBlob()` via Kotlin/JS externals
+- `:core:playback` owns a `StreamProber` contract (duration, codecs, tracks, resolution) with the same four actuals. Desktop reuses the ffmpeg binding built for `:core:image`.
+
+Both contracts are Phase 2 implementation tasks (MVP).
+
+**Affected:**
+
+- [open-questions.md](open-questions.md) — R2 resolved, thumbnail split documented
+- `gradle/libs.versions.toml` — `ffmpeg = "8.0.1-1.5.13"`, `javacpp = "1.5.13"`, `bytedeco-ffmpeg`, `bytedeco-javacpp` added
+- [v1-phase-roadmap.md](v1-phase-roadmap.md) §2.10 image pipeline → will pick up thumbnail extraction as an explicit Phase 2 line item when it's next edited
+
+---
+
 ## Remaining open items after this round
 
-- **R2** — Desktop playback backend selection (libVLC vs mpv vs FFmpeg). The only "which library do we bind into" question still open. Tracked in [open-questions.md](open-questions.md).
+Nothing. Every third-party library decision is now resolved. The remaining work is implementation, not research:
 
-Everything else (navigation, player abstraction, media session, provider clients, XMLTV parsing) is now a hand-roll implementation task, not a research task.
+- Phase 1: libmpv JNA binding, javacpp-presets ffmpeg thumbnail/probe helper, `:core:navigation` back stack + restoration, `PlaybackBackend` implementations on Media3 / AVPlayer / libmpv / hls.js, `:core:security` platform bindings.
+- Phase 2: feature-module implementation per [v1-phase-roadmap.md](v1-phase-roadmap.md).
+
+All tracked in the roadmap, not the decisions doc.

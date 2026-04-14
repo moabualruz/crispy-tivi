@@ -231,10 +231,10 @@ Playback must be:
 ### Decision
 Define a shared player contract and implement platform-specific backends behind it.
 
-Initial V1 direction:
-- Android: native Android player backend (Media3/ExoPlayer direction)
-- Apple: native Apple player backend (AVPlayer/AVFoundation) — shared iOS and macOS module
-- Desktop: **backend not yet pinned** — phase-1 research task per [decisions.md](decisions.md) D14. Candidates include libVLC via vlcj, JavaFX MediaPlayer, JavaCV/FFmpeg bindings, and mpv bindings
+V1 direction:
+- Android: native Android player backend (Media3 / ExoPlayer)
+- Apple: native Apple player backend (AVPlayer / AVFoundation) — shared iOS + macOS module
+- Desktop: **libmpv via a hand-rolled JNA binding** (LGPL v2.1+, dynamic link, `mpv_render_context` OpenGL integrated with Skiko's `DirectContext`). Pinned by [decisions.md](decisions.md) D18. Thumbnail extraction + stream probing use a separate `org.bytedeco:ffmpeg 8.0.1-1.5.13` LGPL-build dependency in `:core:image` and `:core:playback` per D19 — not libmpv.
 - Web: hls.js-backed web playback integration in a dedicated `:platform:player:web` module
 
 ### Consequences

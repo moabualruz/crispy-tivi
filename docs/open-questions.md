@@ -1,12 +1,14 @@
-# Open Questions — Phase-1 Research & Architecture Tasks
+# Open Questions — Phase-1 Architecture Sketches
 
-The 15 interview questions from the suggestive-context conflict review are resolved in [decisions.md](decisions.md). After the April 2026 dependency audit (D17 — hand-roll policy), most subsystem "library adoption" questions collapsed into "hand-roll" decisions. What remains in this file are:
+All 15 interview questions and the dependency audit are resolved in [decisions.md](decisions.md). After D17 (hand-roll policy) and D18/D19 (desktop backend pinned to libmpv + bytedeco ffmpeg), **zero library-adoption research tasks remain**. Everything in this file is now architecture-sketch territory — handed-down design notes for phase-1 implementation work, not open questions.
 
-- Architectural decisions that need written-down architecture (R1, R3, R5, R6)
-- One genuine backend research task (R2 — desktop playback backend)
+What remains:
+
+- Architectural decisions that need written-down architecture for the phase-1 implementers (R1, R3, R5, R6)
 - Hand-roll heads-ups so nobody hunts for a library that doesn't exist (R4)
+- R2 kept as a historical record of the backend comparison that produced D18
 
-All remaining items ship **within V1** per [v1-phase-roadmap.md](v1-phase-roadmap.md). Nothing here is post-V1.
+All items ship **within V1** per [v1-phase-roadmap.md](v1-phase-roadmap.md). Nothing here is post-V1.
 
 ---
 
@@ -43,34 +45,39 @@ All remaining items ship **within V1** per [v1-phase-roadmap.md](v1-phase-roadma
 
 ---
 
-## R2 — Desktop playback backend (OPEN — real backend choice)
+## R2 — Desktop playback backend: RESOLVED → libmpv via custom JNA binding ([decisions.md](decisions.md) D18)
 
-**Status:** Unpinned. Phase-1 research task. The only remaining "which third-party thing do we pick" question.
+**Status:** **RESOLVED.** Desktop backend = **libmpv** (LGPL v2.1+ build) via a hand-rolled JNA binding in `:platform:player:desktop`. Thumbnail extraction + stream probing use a **separate** `javacpp-presets ffmpeg 8.0.1-1.5.13` dependency (LGPL v3 build) in `:core:image` and `:core:playback` — see D19.
 
-**What is unresolved:** which native library `:platform:player:desktop` binds into to decode/render IPTV streams on Windows, Linux, and (if we don't route macOS through `:platform:player:apple`) macOS.
+**Candidates evaluated and dropped:**
 
-Note: this is a **library/backend choice**, not a wrapper choice. KMP player wrappers (MediaMP / kdroidFilter / Chaintech) were evaluated and dropped in R3 per D17. So this question is: what native C library are we JNI-binding?
+| Candidate | Verdict |
+|---|---|
+| **libVLC via vlcj** | **License-blocked.** vlcj is GPL v3 and requires a paid commercial license from Caprica Software to ship proprietary. Also the largest bundle (~100+ MB plugin tree) and has documented macOS notarization pain across hundreds of plugin dylibs. |
+| **GStreamer via gst1-java-core** | LGPL-safe with the strongest LL-HLS / multicast TS pedigree, but ~120 MB plugin tree, macOS/Windows packaging friction (`GST_PLUGIN_PATH` + writable registry cache), no Compose Desktop production users, and — critically — no libplacebo equivalent, so picture quality tuning is far behind MPV. Viable 2nd choice only if libmpv proves problematic during implementation. |
+| **FFmpeg via JavaCV (as a player)** | Frame-grabber, not a player. Building a real player on it requires reimplementing A/V sync, audio device output, libass rendering, and adaptive HLS — 3–6 months of custom work that ends in a worse player than mpv's. Wrong abstraction layer for playback. (FFmpeg via javacpp-presets directly is still used for thumbnails — see D19.) |
+| **JavaFX MediaPlayer** | Eliminated immediately: worst codec coverage, can't reliably handle live IPTV. |
 
-**Candidates to evaluate in the spike:**
-- **libVLC via vlcj** — mature, broadest codec support, IPTV-friendly. License: LGPL. Distribution: vlcj wraps libVLC; users need libVLC installed (or we bundle it per-OS).
-- **mpv via libmpv** — very capable, strong HLS/TS support, smaller footprint than VLC. License: GPL-2.0+/LGPL-2.1+. Distribution: libmpv install per-OS; bundling possible.
-- **FFmpeg via JavaCV or direct JNI** — most control, widest format coverage, most code. License: LGPL (commercial-safe with the LGPL build). We write the render loop ourselves.
-- **JavaFX MediaPlayer** — fewest dependencies but worst codec coverage; does not handle live IPTV reliably. Probably eliminated early in the spike.
+**Why libmpv won:**
 
-**Acceptance criteria the spike must verify:**
-- HLS live (TS-over-HLS, fMP4-over-HLS, low-latency HLS)
-- Direct MPEG-TS (UDP or HTTP-TS — common on IPTV)
-- VOD (MP4, MKV, HLS VOD)
-- Subtitle tracks: select, style, delay offset
-- Audio track selection
-- Playback state observation via `StateFlow<PlayerState>`
-- Error propagation as typed `PlayerEvent` failures
-- Fullscreen, PiP (where OS supports), seek accuracy
-- Cross-platform parity on Windows + Linux (macOS optional per D10 — depends on whether we route macOS through apple)
-- Packaging: end-user on a fresh OS install should be able to run the app without separate library installs (bundle libVLC/libmpv/ffmpeg with the distribution)
-- License compatibility for commercial IPTV use — LGPL is acceptable if we allow dynamic linking + source availability
+1. **License:** LGPL v2.1+ when built in LGPL mode. Commercial-proprietary safe via dynamic linking.
+2. **Picture quality (the priority stated in the decision):** libmpv uses **libplacebo** for HDR tone mapping (BT.2390, BT.2446a, dynamic per-scene), debanding, film grain synthesis, ICC display profiles, and high-quality polar resamplers (ewa_lanczossharp, spline36). No other candidate matches this.
+3. **Enhancement filter ecosystem (the priority stated in the decision):** MPV's GLSL shader system is the largest desktop library of drop-in video enhancement shaders — Anime4K, RealCUGAN/RealESRGAN, NVIDIA Image Scaling, AMD FSR 1.0, KrigBilateral, SSimDownscaler, SSimSuperRes — all distributable as `.glsl` files and loadable at runtime with a single `change-list glsl-shaders append <path>` command. Users can stack multiple shaders and toggle them mid-playback. GStreamer's filter graph cannot match this.
+4. **Bundle size:** ~25–35 MB per OS, one library, no plugin tree.
+5. **Render path:** `mpv_render_context` with `MPV_RENDER_API_OPENGL` shares a GL texture with Skiko's `DirectContext` directly. The only direct-GPU render path of the four candidates.
+6. **Institutional native maintenance:** mpv project active since 2012, libmpv is battle-tested, bus factor not a concern for the native library.
 
-**Exit criteria:** one backend chosen, `:platform:player:desktop` stub replaced with a working implementation on at least Windows + Linux, E2E live + VOD tests passing. SPEC-RAW §23.1 and Amendment B marked resolved. ARD ADR-007's desktop bullet updated to name the chosen backend.
+**What gets built in phase 1:**
+
+- JNA binding (`net.java.dev.jna:jna 5.18.1` + `jna-platform`) in `:platform:player:desktop` over `mpv_create`, `mpv_set_option_string`, `mpv_command_async`, `mpv_observe_property`, `mpv_event_queue`, `mpv_render_context_create`, `mpv_render_context_render`, `mpv_render_context_free`. ~1–2 KLOC of Kotlin.
+- `mpv_render_context` OpenGL integration with Skiko `DirectContext`.
+- `PlaybackBackend` contract implementation wrapping mpv's property observation as `StateFlow<PlayerState>` + `Flow<PlayerEvent>`.
+- Gradle build-time libmpv binary fetch per target OS into `build/libmpv-cache/` (gitignored) and bundle via `compose.desktop.application.nativeDistributions.appResourcesRootDir`.
+- E2E tests: HLS live + MPEG-TS + VOD playback on Linux + Windows runners.
+
+**Reference to cherry-pick from (do not consume as dependency):** animeko's in-progress MPV backend at [open-ani/mediamp](https://github.com/open-ani/mediamp) on the MPV branch.
+
+**Single-maintainer note:** we are the maintainer of the binding. That's the point. libmpv native is institutionally maintained; the thin Kotlin binding is ours to own per D17.
 
 ---
 
@@ -215,7 +222,11 @@ The following were resolved in the interview and earlier rounds. See [decisions.
 - Q11 Autoplay default → D11 (on by default, configurable)
 - Q12 Backup format → D12 (ZIP of JSONs; secrets excluded by default, opt-in passphrase-encrypted)
 - Q13 Nav/state pattern → D13 **UPGRADED** via R1 + D17: hand-rolled in `:core:navigation`, no framework adopted
-- Q14 Desktop playback backend → D14 / R2 (spike open; three candidates: libVLC/vlcj, libmpv, FFmpeg)
+- Q14 Desktop playback backend → D14 → **RESOLVED** via D18: libmpv via custom JNA binding. Thumbnails + probe use javacpp-presets ffmpeg (D19). R2 kept above as historical record.
 - Q15 Platform tiers → D15 (all six ship V1)
+- Dependency audit → D17: drop ill-maintained or single-platform-only libraries and hand-roll
+- Feature scheduling → D16: SPEC-RAW §21 reclassified as V1 late-phase (see [v1-phase-roadmap.md](v1-phase-roadmap.md))
+- Desktop player backend → D18: libmpv via custom JNA binding
+- Desktop thumbnail + stream probe → D19: `org.bytedeco:ffmpeg 8.0.1-1.5.13` LGPL v3 build, consumed directly (no JavaCV)
 - Dependency audit → D17: drop ill-maintained or single-platform-only libraries and hand-roll. Drops: Decompose, Voyager, androidx.navigation.compose, MediaMP, kdroidFilter ComposeMediaPlayer, Chaintech, mediasession-kt, xmlutil, saifullah-nurani/XtreamApi
 - Feature scheduling → D16: SPEC-RAW §21 "Extensibility Requirements" reclassified from post-V1 to V1 late-phase features. Nothing is post-V1. See [v1-phase-roadmap.md](v1-phase-roadmap.md).

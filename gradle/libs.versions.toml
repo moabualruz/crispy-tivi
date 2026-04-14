@@ -26,8 +26,11 @@ sqldelight = "2.3.2"
 ktor = "3.4.2"
 
 # IPTV / media domain
-media3 = "1.10.0"
-hlsjs-npm = "1.6.15"  # loaded via Kotlin/JS externals in platform-player-web, NOT a Maven artifact
+media3 = "1.10.0"            # Android playback backend (Media3/ExoPlayer)
+hlsjs-npm = "1.6.15"         # Web playback: loaded via Kotlin/JS externals in platform-player-web, NOT a Maven artifact
+jna = "5.18.1"               # Desktop libmpv binding (D18)
+ffmpeg = "8.0.1-1.5.13"      # Desktop thumbnail/probe backend (D19) — LGPL v3 build ONLY
+javacpp = "1.5.13"           # JNI loader for the bytedeco ffmpeg natives
 
 # Note: xmlutil was evaluated for XMLTV parsing and DROPPED.
 # Reason: single-maintainer, and XMLTV is a narrow DTD that we can pull-parse
@@ -83,6 +86,21 @@ ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "kto
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
+
+# --- Desktop libmpv binding (D18) ---
+# JNA provides the Java-native glue for the hand-rolled libmpv binding.
+# libmpv itself is an external native binary bundled by the installer, NOT a
+# Maven artifact. See platform/player/desktop for the binding code.
+jna-core = { module = "net.java.dev.jna:jna", version.ref = "jna" }
+jna-platform = { module = "net.java.dev.jna:jna-platform", version.ref = "jna" }
+
+# --- Desktop thumbnail / probe backend (D19) ---
+# bytedeco javacpp-presets FFmpeg, LGPL v3 build. MUST NOT pull the `-gpl`
+# classifier. Single-OS-per-installer pattern: add the appropriate OS
+# classifier from the module build.gradle.kts (linux-x86_64 / linux-arm64 /
+# macosx-x86_64 / macosx-arm64 / windows-x86_64). See docs/decisions.md D19.
+bytedeco-ffmpeg = { module = "org.bytedeco:ffmpeg", version.ref = "ffmpeg" }
+bytedeco-javacpp = { module = "org.bytedeco:javacpp", version.ref = "javacpp" }
 
 # --- Android playback (Media3 / ExoPlayer) — used only by platform-player-android ---
 androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3" }
