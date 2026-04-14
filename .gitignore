@@ -1,0 +1,105 @@
+# =========================================================================
+# Gradle
+# =========================================================================
+.gradle/
+build/
+!**/src/**/build/
+!gradle/wrapper/gradle-wrapper.jar
+gradle-app.setting
+.gradletasknamecache
+
+# =========================================================================
+# Kotlin
+# =========================================================================
+# K2 incremental cache (Kotlin 2.0+)
+.kotlin/
+# wasmJs node_modules lockfile store — commit if you want reproducible wasmJs
+# installs; ignore otherwise. Project default: ignore.
+kotlin-js-store/
+
+# =========================================================================
+# Android
+# =========================================================================
+local.properties
+*.apk
+*.aab
+*.ap_
+*.aar
+*.dex
+captures/
+.externalNativeBuild/
+.cxx/
+*.hprof
+
+# =========================================================================
+# iOS / Xcode
+# =========================================================================
+xcuserdata/
+*.xcuserstate
+DerivedData/
+iosApp/Podfile.lock
+iosApp/Pods/
+*.xcworkspace/xcuserdata/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+.swiftpm/
+
+# =========================================================================
+# Desktop packaging artifacts
+# =========================================================================
+packaging/
+*.dmg
+*.msi
+*.deb
+*.rpm
+*.AppImage
+
+# =========================================================================
+# Node / Web
+# =========================================================================
+node_modules/
+
+# =========================================================================
+# IDE / tooling
+# =========================================================================
+# IntelliJ / Android Studio / Fleet — ignore most, but keep shareable configs
+.idea/
+!.idea/codeStyles/
+!.idea/copyright/
+!.idea/runConfigurations/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.fleet/
+
+# =========================================================================
+# OS
+# =========================================================================
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# =========================================================================
+# Secrets / credentials — NEVER commit these
+# =========================================================================
+*.jks
+*.keystore
+!debug.keystore
+google-services.json
+GoogleService-Info.plist
+.env
+.env.local
+*.p8
+*.p12
+*.mobileprovision
+
+# =========================================================================
+# Logs
+# =========================================================================
+*.log
+hs_err_pid*
+replay_pid*

@@ -1,0 +1,150 @@
+[versions]
+# Core build tooling
+kotlin = "2.3.20"
+agp = "9.1.0"
+compose-multiplatform = "1.10.3"
+
+# Kotlinx
+coroutines = "1.10.2"
+serialization = "1.11.0"
+datetime = "0.7.1"
+collections-immutable = "0.4.0"
+atomicfu = "0.32.1"
+
+# Android / Jetpack (KMP-capable where noted)
+androidx-activity-compose = "1.13.0"
+androidx-core-ktx = "1.18.0"
+androidx-lifecycle = "2.10.0"
+
+# Android SDK (not yet wired — add when Android SDK is installed)
+android-compile-sdk = "36"
+android-target-sdk = "36"
+android-min-sdk = "24"
+
+# Data / network / DB
+sqldelight = "2.3.2"
+ktor = "3.4.2"
+
+# IPTV / media domain
+media3 = "1.10.0"
+hlsjs-npm = "1.6.15"  # loaded via Kotlin/JS externals in platform-player-web, NOT a Maven artifact
+
+# Note: xmlutil was evaluated for XMLTV parsing and DROPPED.
+# Reason: single-maintainer, and XMLTV is a narrow DTD that we can pull-parse
+# directly with Okio (transitive via SQLDelight/Ktor). See open-questions.md R4.
+
+# DI / logging / image / testing — picked to reduce handwritten glue
+koin = "4.2.1"
+coil = "3.4.0"
+kermit = "2.1.0"
+turbine = "1.2.1"
+kotest = "6.1.11"
+
+# Navigation libraries are INTENTIONALLY ABSENT. Per decisions.md D13+D17,
+# navigation is hand-rolled on sealed-class routes + StateFlow + the
+# data-restoration RestorationRecord integration. Dropped candidates:
+#   - Decompose: single-maintainer, critical subsystem risk
+#   - Voyager:   stale stable (1.0.1 dated; active work in 1.1.0-beta)
+#   - androidx.navigation.compose: KMP stable only on Android
+
+[libraries]
+# --- build-logic plugin classpath deps (used by convention plugins) ---
+kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+compose-gradle-plugin = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "compose-multiplatform" }
+android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
+
+# --- kotlinx core ---
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "datetime" }
+kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "collections-immutable" }
+kotlinx-atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version.ref = "atomicfu" }
+
+# --- androidx (KMP-capable) ---
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity-compose" }
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core-ktx" }
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+
+# --- data / network / db ---
+sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqldelight" }
+sqldelight-coroutines-extensions = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
+sqldelight-android-driver = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
+sqldelight-native-driver = { module = "app.cash.sqldelight:native-driver", version.ref = "sqldelight" }
+sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqldelight" }
+sqldelight-web-worker-driver = { module = "app.cash.sqldelight:web-worker-driver", version.ref = "sqldelight" }
+
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
+
+# --- Android playback (Media3 / ExoPlayer) — used only by platform-player-android ---
+androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3" }
+androidx-media3-exoplayer-hls = { module = "androidx.media3:media3-exoplayer-hls", version.ref = "media3" }
+androidx-media3-exoplayer-dash = { module = "androidx.media3:media3-exoplayer-dash", version.ref = "media3" }
+androidx-media3-exoplayer-rtsp = { module = "androidx.media3:media3-exoplayer-rtsp", version.ref = "media3" }
+androidx-media3-exoplayer-smoothstreaming = { module = "androidx.media3:media3-exoplayer-smoothstreaming", version.ref = "media3" }
+androidx-media3-session = { module = "androidx.media3:media3-session", version.ref = "media3" }
+androidx-media3-datasource-okhttp = { module = "androidx.media3:media3-datasource-okhttp", version.ref = "media3" }
+androidx-media3-cast = { module = "androidx.media3:media3-cast", version.ref = "media3" }
+
+# NOTE on IPTV libraries that are INTENTIONALLY NOT in the catalog
+# (see context/open-questions.md R3-R6 and context/decisions.md D17):
+#
+#   Hand-rolled in our own modules:
+#   - M3U parser                        → provider-m3u     (~200 LOC)
+#   - Xtream Codes API client           → provider-xtream  (~500 LOC)
+#   - Stalker/Ministra portal client    → provider-stalker (~800 LOC)
+#   - XMLTV streaming parser            → epg-core         (~400 LOC, uses Okio)
+#   - KMP PlaybackBackend contract      → playback-core + platform-player-*
+#     impls (expect/actual Media3 on Android, AVPlayer on Apple, desktop
+#     backend per D14, hls.js via externals on Web)
+#   - Navigation + back stack           → navigation-core (sealed routes +
+#     StateFlow + RestorationRecord integration)
+#   - Non-Android media session         → platform-observability-* /
+#     platform-player-* (Apple MPNowPlayingInfoCenter + MPRemoteCommandCenter
+#     via cinterop; Linux MPRIS via D-Bus; Windows SMTC via JNI; Web
+#     MediaSession API via externals)
+#
+#   Evaluated and dropped (single-maintainer or missing targets):
+#   - Decompose, Voyager, androidx.navigation.compose (nav)
+#   - MediaMP, kdroidFilter ComposeMediaPlayer, Chaintech (player wrappers)
+#   - mediasession-kt (desktop media session: missing macOS + web)
+#   - xmlutil (XML: single-maintainer; XMLTV is narrow enough to hand-roll)
+#   - saifullah-nurani/XtreamApi (pre-1.0, missing Native + Web targets)
+
+# --- DI ---
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
+koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
+
+# --- image loading ---
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
+
+# --- logging ---
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
+
+# --- test ---
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
+kotest-framework-engine = { module = "io.kotest:kotest-framework-engine", version.ref = "kotest" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+
+[plugins]
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
