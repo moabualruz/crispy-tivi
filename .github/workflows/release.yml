@@ -150,7 +150,7 @@ jobs:
   # =================================================================
   build-linux-android-web:
     name: Build Linux + Android + Web
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, generic]
     steps:
       - uses: actions/checkout@v4
 
@@ -182,6 +182,7 @@ jobs:
 
       - name: Install Linux build deps
         run: |
+          command -v apt-get >/dev/null || exit 0
           sudo apt-get update
           sudo apt-get install -y \
             clang cmake ninja-build \
@@ -293,7 +294,7 @@ jobs:
   # =================================================================
   create-release:
     name: Create GitHub Release
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, generic]
     needs: [build-windows, build-macos-ios, build-linux-android-web]
     steps:
       - uses: actions/checkout@v4

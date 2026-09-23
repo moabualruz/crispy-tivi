@@ -35,7 +35,7 @@ jobs:
   # ── Rust Tests ──────────────────────────────────
   rust-test:
     name: Rust Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, generic]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -84,7 +84,7 @@ jobs:
   # ── Flutter Analyze ─────────────────────────────
   flutter-analyze:
     name: Flutter Analyze
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, generic]
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -102,7 +102,7 @@ jobs:
   # ── Flutter Tests ───────────────────────────────
   flutter-test:
     name: Flutter Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, generic]
     needs: flutter-analyze
     steps:
       - uses: actions/checkout@v4
@@ -216,7 +216,7 @@ jobs:
   # ── Build Android ───────────────────────────────
   build-android:
     name: Build Android
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, generic]
     needs: [rust-test, flutter-analyze]
     steps:
       - uses: actions/checkout@v4
@@ -255,7 +255,7 @@ jobs:
   # ── Build Web ───────────────────────────────────
   build-web:
     name: Build Web
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, generic]
     needs: flutter-analyze
     steps:
       - uses: actions/checkout@v4
@@ -275,7 +275,7 @@ jobs:
   # ── Playwright Web Tests ────────────────────────
   playwright-web:
     name: Playwright Web Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, generic]
     needs: [build-web]
     steps:
       - uses: actions/checkout@v4
@@ -304,7 +304,7 @@ jobs:
   # ── Build Server ────────────────────────────────
   build-server:
     name: Build Server
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, generic]
     needs: rust-test
     steps:
       - uses: actions/checkout@v4
@@ -331,7 +331,7 @@ jobs:
   # ── Build Linux ─────────────────────────────────
   build-linux:
     name: Build Linux
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, generic]
     needs: [rust-test, flutter-analyze]
     continue-on-error: true
     steps:
@@ -350,6 +350,7 @@ jobs:
           cache: true
       - name: Install Linux deps
         run: |
+          command -v apt-get >/dev/null || exit 0
           sudo apt-get update
           sudo apt-get install -y \
             clang cmake ninja-build \
