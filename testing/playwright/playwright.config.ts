@@ -48,7 +48,7 @@ export default defineConfig({
       executablePath: chromiumExecutable,
     },
     /* Flutter web dev server URL. */
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: `http://127.0.0.1:${process.env.CRISPY_WEB_PORT ?? "3000"}`,
 
     /* Capture screenshot on failure for debugging. */
     screenshot: "only-on-failure",

@@ -305,15 +305,17 @@ jobs:
         with:
           name: web-release
           path: app/flutter/build/web/
+      - name: Pick a free port
+        run: echo "CRISPY_WEB_PORT=$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')" >> "$GITHUB_ENV"
       - name: Serve web app
-        run: npx -y http-server app/flutter/build/web -p 3000 -a 127.0.0.1 -c-1 --cors &
+        run: npx -y http-server app/flutter/build/web -p "$CRISPY_WEB_PORT" -a 127.0.0.1 -c-1 --cors &
       - name: Wait for server
-        run: npx -y wait-on http://127.0.0.1:3000 --timeout 60000
+        run: npx -y wait-on "http://127.0.0.1:$CRISPY_WEB_PORT" --timeout 60000
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - name: Install Playwright
-        run: cd testing/playwright && npm ci && npx playwright install --with-deps chromium
+        run: cd testing/playwright && npm ci
       - name: Run Playwright tests
         run: cd testing/playwright && npx playwright test --workers=4
       - uses: actions/upload-artifact@v4
