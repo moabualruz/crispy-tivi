@@ -68,9 +68,15 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('EpgTimelineScreen renders channels and programs', (tester) async {
+  testWidgets('EpgTimelineScreen renders channels and programs', (
+    tester,
+  ) async {
     final now = DateTime.now();
-    final channel = Channel(id: 'ch1', name: 'Channel 1', streamUrl: 'http://test');
+    final channel = Channel(
+      id: 'ch1',
+      name: 'Channel 1',
+      streamUrl: 'http://test',
+    );
     final entry = EpgEntry(
       channelId: 'ch1',
       title: 'Program A',
@@ -99,8 +105,12 @@ void main() {
           crispyBackendProvider.overrideWithValue(testBackend),
           cacheServiceProvider.overrideWithValue(testCache),
           playerServiceProvider.overrideWithValue(mockPlayer),
-          playbackStateProvider.overrideWith((ref) => Stream<PlaybackState>.empty()),
-          playlistSyncServiceProvider.overrideWith((ref) => _NoOpSyncService(ref)),
+          playbackStateProvider.overrideWith(
+            (ref) => Stream<PlaybackState>.empty(),
+          ),
+          playlistSyncServiceProvider.overrideWith(
+            (ref) => _NoOpSyncService(ref),
+          ),
           dvrServiceProvider.overrideWith(() => _StubDvrService()),
           epgProvider.overrideWith(
             () => _FakeEpgNotifier(
