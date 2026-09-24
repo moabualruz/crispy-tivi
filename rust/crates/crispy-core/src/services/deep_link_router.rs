@@ -142,7 +142,7 @@ pub fn parse_deep_link(uri: &str) -> Result<DeepLink, CrispyError> {
             Ok(DeepLink::Search(query))
         }
 
-        ["settings", section] => Ok(DeepLink::Settings(section.to_string())),
+        ["settings", section] => Ok(DeepLink::Settings((*section).to_string())),
         ["settings"] => Ok(DeepLink::Settings(String::new())),
 
         ["watchparty", id] => Ok(DeepLink::WatchParty(require_id(id, "watchparty")?)),

@@ -83,7 +83,6 @@ pub(crate) fn normalize_channel_name(name: &str) -> String {
 
 impl EpgService {
     fn resolve_epg_keys_for_channels(
-        &self,
         conn: &rusqlite::Connection,
         channel_ids: &[String],
     ) -> Result<HashMap<String, Vec<String>>, DbError> {
@@ -549,7 +548,7 @@ impl EpgService {
         if channel_ids.is_empty() {
             return Ok(HashMap::new());
         }
-        let xmltv_to_channels = self.resolve_epg_keys_for_channels(&conn, channel_ids)?;
+        let xmltv_to_channels = Self::resolve_epg_keys_for_channels(&conn, channel_ids)?;
 
         if xmltv_to_channels.is_empty() {
             return Ok(HashMap::new());
@@ -604,7 +603,7 @@ impl EpgService {
         end_time: i64,
     ) -> Result<Vec<String>, DbError> {
         let conn = self.0.db.get()?;
-        let xmltv_to_channels = self.resolve_epg_keys_for_channels(&conn, channel_ids)?;
+        let xmltv_to_channels = Self::resolve_epg_keys_for_channels(&conn, channel_ids)?;
         if xmltv_to_channels.is_empty() {
             return Ok(Vec::new());
         }

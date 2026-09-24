@@ -45,7 +45,7 @@ fn safe_defaults() -> HashMap<String, FlagDef> {
     .iter()
     .map(|(name, enabled, pct)| {
         (
-            name.to_string(),
+            (*name).to_string(),
             FlagDef {
                 enabled: *enabled,
                 rollout_pct: *pct,
