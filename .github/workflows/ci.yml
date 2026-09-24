@@ -250,9 +250,10 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: android-actions/setup-android@v3
-      - name: Install Android NDK
+        with:
+          packages: platform-tools ndk;27.0.12077973
+      - name: Point cargo-ndk at the NDK
         run: |
-          sdkmanager --install "ndk;27.0.12077973"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
       - uses: subosito/flutter-action@v2
         with:
