@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,6 +16,8 @@ import 'package:crispy_tivi/features/airplay/data/airplay_service.dart';
 /// state, which is what production code uses.
 
 void main() {
+  final airPlaySupported = Platform.isIOS || Platform.isMacOS;
+
   // ── AirPlayState unit tests ──────────────────────
 
   group('AirPlayState', () {
@@ -131,34 +135,27 @@ void main() {
       container.dispose();
     });
 
-    test('initial state reports unsupported on '
-        'non-Apple platform', () {
+    test('initial state reports the platform capability', () {
       final state = container.read(airplayServiceProvider);
-      // On Windows/Linux test runner, AirPlay
-      // uses the stub helper (unsupported).
-      expect(state.isSupported, isFalse);
+      expect(state.isSupported, airPlaySupported);
       expect(state.isConnected, isFalse);
       expect(state.isPlaying, isFalse);
       expect(state.currentMedia, isNull);
     });
 
-    test('showPicker is callable without error on '
-        'unsupported platform', () {
-      // Stub helper's showPicker is a no-op.
+    test('showPicker is callable without error', () {
       expect(
         () => container.read(airplayServiceProvider.notifier).showPicker(),
         returnsNormally,
       );
     });
 
-    test('playUrl returns false on unsupported '
-        'platform', () async {
+    test('playUrl returns false when playback is unavailable', () async {
       final result = await container
           .read(airplayServiceProvider.notifier)
           .playUrl('http://stream.test/a.m3u8', title: 'Test');
 
       expect(result, isFalse);
-      // State unchanged because playback failed.
       final state = container.read(airplayServiceProvider);
       expect(state.isPlaying, isFalse);
       expect(state.currentMedia, isNull);
@@ -204,8 +201,7 @@ void main() {
 
     test('isSupported getter delegates to helper', () {
       final notifier = container.read(airplayServiceProvider.notifier);
-      // On Windows test runner, stub returns false.
-      expect(notifier.isSupported, isFalse);
+      expect(notifier.isSupported, airPlaySupported);
     });
 
     test('isConnected getter delegates to helper', () {
