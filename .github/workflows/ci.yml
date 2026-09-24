@@ -49,7 +49,7 @@ jobs:
           workspaces: rust
           prefix-key: v2
       - name: cargo fmt check
-        run: cargo fmt --check
+        run: cargo fmt --check -p crispy-core -p crispy-ffi -p crispy-server
         working-directory: rust
       - name: cargo test (threshold-enforced)
         run: |
