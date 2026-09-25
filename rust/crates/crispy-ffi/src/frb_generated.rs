@@ -20,7 +20,8 @@
     clippy::deref_addrof,
     clippy::explicit_auto_deref,
     clippy::borrow_deref_ref,
-    clippy::needless_borrow
+    clippy::needless_borrow,
+    clippy::semicolon_if_nothing_returned
 )]
 
 // Section: imports

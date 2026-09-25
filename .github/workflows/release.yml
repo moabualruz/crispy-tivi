@@ -27,6 +27,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -84,6 +86,8 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -150,9 +154,11 @@ jobs:
   # =================================================================
   build-linux-android-web:
     name: Build Linux + Android + Web
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, generic]
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -174,6 +180,18 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      - uses: android-actions/setup-android@v3
+
+        with:
+
+          packages: platform-tools ndk;27.0.12077973
+
+      - name: Point cargo-ndk at the NDK
+
+        run: |
+
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -182,6 +200,7 @@ jobs:
 
       - name: Install Linux build deps
         run: |
+          command -v apt-get >/dev/null || exit 0
           sudo apt-get update
           sudo apt-get install -y \
             clang cmake ninja-build \
@@ -293,10 +312,12 @@ jobs:
   # =================================================================
   create-release:
     name: Create GitHub Release
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, generic]
     needs: [build-windows, build-macos-ios, build-linux-android-web]
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/download-artifact@v4
         with:

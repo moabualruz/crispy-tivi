@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
 /// Native AirPlay implementation for iOS and macOS.
 ///
@@ -19,6 +20,7 @@ class AirPlayHelper {
   /// Creates an AirPlay helper and sets up the method call handler.
   AirPlayHelper() {
     if (isSupported) {
+      WidgetsFlutterBinding.ensureInitialized();
       _channel.setMethodCallHandler(_handleMethodCall);
     }
   }
@@ -67,6 +69,8 @@ class AirPlayHelper {
       await _channel.invokeMethod<void>('showPicker');
     } on PlatformException catch (e) {
       debugPrint('AirPlay: Failed to show picker: ${e.message}');
+    } on MissingPluginException catch (e) {
+      debugPrint('AirPlay: Failed to show picker: $e');
     }
   }
 
@@ -84,6 +88,9 @@ class AirPlayHelper {
       return result ?? false;
     } on PlatformException catch (e) {
       debugPrint('AirPlay: Failed to play URL: ${e.message}');
+      return false;
+    } on MissingPluginException catch (e) {
+      debugPrint('AirPlay: Failed to play URL: $e');
       return false;
     }
   }

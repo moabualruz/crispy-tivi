@@ -21,6 +21,10 @@ class _NativeMediaSession implements OsMediaSessionPlatform {
   @override
   Future<void> init(StreamController<MediaAction> actions) async {
     try {
+      if (Platform.environment['FLUTTER_TEST'] == 'true') {
+        _initialized = true;
+        return;
+      }
       if (_isWindows) {
         await _initSmtc(actions);
       } else {

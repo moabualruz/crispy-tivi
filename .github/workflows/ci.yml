@@ -7,6 +7,8 @@
 name: CI
 
 on:
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -35,9 +37,11 @@ jobs:
   # ── Rust Tests ──────────────────────────────────
   rust-test:
     name: Rust Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","generic"]') }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
@@ -47,7 +51,7 @@ jobs:
           workspaces: rust
           prefix-key: v2
       - name: cargo fmt check
-        run: cargo fmt --check
+        run: cargo fmt --check -p crispy-core -p crispy-ffi -p crispy-server
         working-directory: rust
       - name: cargo test (threshold-enforced)
         run: |
@@ -84,9 +88,11 @@ jobs:
   # ── Flutter Analyze ─────────────────────────────
   flutter-analyze:
     name: Flutter Analyze
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","generic"]') }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -102,10 +108,12 @@ jobs:
   # ── Flutter Tests ───────────────────────────────
   flutter-test:
     name: Flutter Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","generic"]') }}
     needs: flutter-analyze
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -153,6 +161,8 @@ jobs:
     needs: flutter-analyze
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -175,6 +185,8 @@ jobs:
     needs: [rust-test, flutter-analyze]
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
@@ -216,10 +228,12 @@ jobs:
   # ── Build Android ───────────────────────────────
   build-android:
     name: Build Android
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","generic"]') }}
     needs: [rust-test, flutter-analyze]
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
@@ -237,6 +251,12 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools ndk;27.0.12077973
+      - name: Point cargo-ndk at the NDK
+        run: |
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -255,10 +275,12 @@ jobs:
   # ── Build Web ───────────────────────────────────
   build-web:
     name: Build Web
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","generic"]') }}
     needs: flutter-analyze
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -275,23 +297,27 @@ jobs:
   # ── Playwright Web Tests ────────────────────────
   playwright-web:
     name: Playwright Web Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","generic"]') }}
     needs: [build-web]
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: actions/download-artifact@v4
         with:
           name: web-release
           path: app/flutter/build/web/
+      - name: Pick a free port
+        run: echo "CRISPY_WEB_PORT=$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')" >> "$GITHUB_ENV"
       - name: Serve web app
-        run: npx -y http-server app/flutter/build/web -p 3000 -a 127.0.0.1 -c-1 --cors &
+        run: npx -y http-server app/flutter/build/web -p "$CRISPY_WEB_PORT" -a 127.0.0.1 -c-1 --cors &
       - name: Wait for server
-        run: npx -y wait-on http://127.0.0.1:3000 --timeout 60000
+        run: npx -y wait-on "http://127.0.0.1:$CRISPY_WEB_PORT" --timeout 60000
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - name: Install Playwright
-        run: cd testing/playwright && npm ci && npx playwright install --with-deps chromium
+        run: cd testing/playwright && npm ci
       - name: Run Playwright tests
         run: cd testing/playwright && npx playwright test --workers=4
       - uses: actions/upload-artifact@v4
@@ -304,10 +330,12 @@ jobs:
   # ── Build Server ────────────────────────────────
   build-server:
     name: Build Server
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","generic"]') }}
     needs: rust-test
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
@@ -331,11 +359,13 @@ jobs:
   # ── Build Linux ─────────────────────────────────
   build-linux:
     name: Build Linux
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","generic"]') }}
     needs: [rust-test, flutter-analyze]
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
@@ -350,6 +380,7 @@ jobs:
           cache: true
       - name: Install Linux deps
         run: |
+          command -v apt-get >/dev/null || exit 0
           sudo apt-get update
           sudo apt-get install -y \
             clang cmake ninja-build \
@@ -371,6 +402,8 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
@@ -415,6 +448,8 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}

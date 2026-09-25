@@ -50,6 +50,15 @@ class _FakeEpgNotifier extends EpgNotifier {
       showEpgOnly: false,
     );
   }
+
+  // The fake owns its entries; a viewport fetch against the empty test cache
+  // would replace them with nothing.
+  @override
+  Future<void> fetchEpgWindow(
+    DateTime requestedStart,
+    DateTime requestedEnd, {
+    bool refreshCoverage = true,
+  }) async {}
 }
 
 void main() {
