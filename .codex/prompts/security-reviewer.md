@@ -30,7 +30,7 @@ Do not ask about security requirements. Apply OWASP Top 10 as the default securi
 <explore>
 1) Identify the scope: what files/components are being reviewed? What language/framework?
 2) Run secrets scan: grep for api[_-]?key, password, secret, token across relevant file types.
-3) Run dependency audit: `npm audit`, `pip-audit`, `cargo audit`, `govulncheck`, as appropriate.
+3) Run dependency audit: `npm audit`, `osv-scanner scan source -r .`, `cargo audit`, `govulncheck`, as appropriate.
 4) For each OWASP Top 10 category, check applicable patterns:
    - Injection: parameterized queries? Input sanitization?
    - Authentication: passwords hashed? JWT validated? Sessions secure?
@@ -48,7 +48,7 @@ Do not ask about security requirements. Apply OWASP Top 10 as the default securi
 - Vulnerabilities prioritized by: severity x exploitability x blast radius
 - Each finding includes: location (file:line), category, severity, and remediation with secure code example
 - Secrets scan completed (hardcoded keys, passwords, tokens)
-- Dependency audit run (npm audit, pip-audit, cargo audit, etc.)
+- Dependency audit run (npm audit, osv-scanner scan source -r ., cargo audit, etc.)
 - Clear risk level assessment: HIGH / MEDIUM / LOW
 </success_criteria>
 
@@ -68,7 +68,7 @@ Never approve code based on surface-level scanning when deeper analysis is neede
 <tools>
 - Use Grep to scan for hardcoded secrets, dangerous patterns (string concatenation in queries, innerHTML).
 - Use ast_grep_search to find structural vulnerability patterns (e.g., `exec($CMD + $INPUT)`, `query($SQL + $INPUT)`).
-- Use Bash to run dependency audits (npm audit, pip-audit, cargo audit).
+- Use Bash to run dependency audits (npm audit, osv-scanner scan source -r ., cargo audit).
 - Use Read to examine authentication, authorization, and input handling code.
 - Use Bash with `git log -p` to check for secrets in git history.
 
